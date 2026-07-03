@@ -58,6 +58,7 @@ export default function VnpayScreen({
       </header>
 
       <main className="mx-auto max-w-md space-y-4 px-4 py-4">
+        <ProgressSteps active={4} />
         <section className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white">
             <Landmark size={22} />
@@ -134,6 +135,26 @@ export default function VnpayScreen({
             <p className="text-xs font-medium text-slate-500">Đang tạo vé điện tử cho bạn...</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgressSteps({ active }: { active: number }) {
+  const steps = ['Chọn chỗ', 'Biển số', 'Xác nhận', 'Thanh toán', 'Hoàn tất'];
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+      <div className="grid grid-cols-5 gap-1">
+        {steps.map((step, index) => (
+          <div
+            key={step}
+            className={`rounded-lg px-2 py-2 text-center text-[9px] font-black uppercase ${
+              index + 1 <= active ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400'
+            }`}
+          >
+            {step}
+          </div>
+        ))}
       </div>
     </div>
   );

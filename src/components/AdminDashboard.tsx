@@ -1,10 +1,28 @@
-import { FormEvent, useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { User, ParkingSlot, SystemLog, Transaction, Role } from '../types';
-import { ADMIN_AVATAR } from '../mockData';
+import { ADMIN_AVATAR, REVENUE_DATA_WEEK } from '../mockData';
 import {
-  LayoutDashboard, Map, Receipt, Group, BarChart3, Settings, LogOut, RefreshCw, Plus, Search,
-  Database, Video, Wallet, Mail, AlertTriangle, CheckCircle, Activity, Shield, TrendingUp, Clock, Info, UserPlus, Eye, Filter, Trash2
+  BarChart3,
+  Camera,
+  Car,
+  Database,
+  DoorOpen,
+  LayoutDashboard,
+  LogOut,
+  Map,
+  Receipt,
+  ScanLine,
+  Search,
+  Settings,
+  Shield,
+  Trash2,
+  UserPlus,
+  Users,
+  Wallet,
 } from 'lucide-react';
+
+type AdminTab = 'dashboard' | 'gate' | 'map' | 'transactions' | 'users' | 'reports' | 'settings';
 
 interface AdminDashboardProps {
   initialUsers: User[];
@@ -15,6 +33,38 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
+const ROLE_LABEL: Record<Role, string> = {
+  guest: 'Khách',
+  driver: 'Tài xế',
+  staff: 'Nhân viên',
+  manager: 'Quản lý',
+  admin: 'Quản trị viên',
+};
+
+const ROLE_TABS: Record<Role, AdminTab[]> = {
+  guest: [],
+  driver: [],
+  staff: ['gate', 'dashboard', 'map', 'transactions'],
+  manager: ['dashboard', 'map', 'transactions', 'users', 'reports'],
+  admin: ['dashboard', 'gate', 'map', 'transactions', 'users', 'reports', 'settings'],
+};
+
+const NAV_ITEMS: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashboard; helper: string }> = [
+  { id: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard, helper: 'Tổng quan vận hành' },
+  { id: 'gate', label: 'Cổng check-in/out', icon: DoorOpen, helper: 'Xử lý xe ra vào' },
+  { id: 'map', label: 'Sơ đồ bãi xe', icon: Map, helper: 'Theo dõi và cập nhật slot' },
+  { id: 'transactions', label: 'Giao dịch bãi xe', icon: Receipt, helper: 'Tra cứu thanh toán' },
+  { id: 'users', label: 'Quản lý người dùng', icon: Users, helper: 'Tài xế và nhân sự' },
+  { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart3, helper: 'Doanh thu và công suất' },
+  { id: 'settings', label: 'Cấu hình hệ thống', icon: Settings, helper: 'Giá, camera, cảnh báo' },
+];
+
+const SLOT_STATUS = {
+  available: { label: 'Trống', badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', card: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+  reserved: { label: 'Đã đặt', badge: 'bg-amber-50 text-amber-700 border-amber-100', card: 'border-amber-200 bg-amber-50 text-amber-800' },
+  occupied: { label: 'Đang đỗ', badge: 'bg-rose-50 text-rose-700 border-rose-100', card: 'border-rose-200 bg-rose-50 text-rose-800' },
+};
+
 export default function AdminDashboard({
   initialUsers,
   initialSlots,
@@ -23,1062 +73,677 @@ export default function AdminDashboard({
   currentRole,
   onLogout,
 }: AdminDashboardProps) {
-  // Navigation active tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'map' | 'transactions' | 'users' | 'reports' | 'settings'>('dashboard');
-
-  // Local state for dynamic interactivity
+  const allowedTabs = ROLE_TABS[currentRole] || ROLE_TABS.staff;
+  const [activeTab, setActiveTab] = useState<AdminTab>(allowedTabs[0] || 'dashboard');
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [slots, setSlots] = useState<ParkingSlot[]>(initialSlots);
   const [logs, setLogs] = useState<SystemLog[]>(initialLogs);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-
+  const [transactions] = useState<Transaction[]>(initialTransactions);
   const [userSearch, setUserSearch] = useState('');
   const [txSearch, setTxSearch] = useState('');
   const [mapFloorFilter, setMapFloorFilter] = useState('Tầng 1');
-
-  // Editing slot details
   const [editingSlot, setEditingSlot] = useState<ParkingSlot | null>(null);
   const [newSlotPlate, setNewSlotPlate] = useState('');
-  const [newSlotHours, setNewSlotHours] = useState(3);
-
-  // Add User Form Modal
+  const [newSlotHours, setNewSlotHours] = useState(2);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserRole, setNewUserRole] = useState<'staff' | 'manager' | 'admin' | 'driver'>('staff');
+  const [gateMode, setGateMode] = useState<'checkin' | 'checkout'>('checkin');
+  const [manualPlate, setManualPlate] = useState('59A-123.45');
+  const [gateToast, setGateToast] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Filter users based on search
-  const filteredUsers = useMemo(() => {
-    return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-        u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-        u.phone.includes(userSearch)
-    );
-  }, [users, userSearch]);
+  const canManageUsers = allowedTabs.includes('users');
+  const canConfigure = allowedTabs.includes('settings');
+  const visibleNavItems = NAV_ITEMS.filter((item) => allowedTabs.includes(item.id));
 
-  // Filter transactions
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(
-      (t) =>
-        t.licensePlate.toLowerCase().includes(txSearch.toLowerCase()) ||
-        t.slotId.toLowerCase().includes(txSearch.toLowerCase()) ||
-        t.id.toLowerCase().includes(txSearch.toLowerCase())
-    );
-  }, [transactions, txSearch]);
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((user) => {
+        const query = userSearch.toLowerCase();
+        return (
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query) ||
+          user.phone.includes(userSearch) ||
+          user.licensePlate.toLowerCase().includes(query)
+        );
+      }),
+    [users, userSearch]
+  );
+
+  const filteredTransactions = useMemo(
+    () =>
+      transactions.filter((tx) => {
+        const query = txSearch.toLowerCase();
+        return tx.id.toLowerCase().includes(query) || tx.licensePlate.toLowerCase().includes(query) || tx.slotId.toLowerCase().includes(query);
+      }),
+    [transactions, txSearch]
+  );
+
+  const floorSlots = useMemo(() => slots.filter((slot) => slot.floor === mapFloorFilter), [slots, mapFloorFilter]);
+  const occupancyRate = Math.round((slots.filter((slot) => slot.status !== 'available').length / slots.length) * 100);
+  const totalRevenue = transactions.filter((tx) => tx.status === 'success').reduce((sum, tx) => sum + tx.amount, 0);
+  const todayTransactions = transactions.filter((tx) => tx.timeStr.includes('Hôm nay')).length;
+
+  const handleAddNewUser = (event: FormEvent) => {
+    event.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim() || !canManageUsers) return;
+
+    const newUser: User = {
+      id: `U${String(users.length + 1).padStart(3, '0')}`,
+      name: newUserName.trim(),
+      email: newUserEmail.trim(),
+      phone: newUserPhone.trim() || '0901234567',
+      licensePlate: newUserRole === 'driver' ? 'Chưa cập nhật' : 'N/A',
+      role: newUserRole,
+      joinedDate: new Date().toLocaleDateString('vi-VN'),
+      status: 'ACTIVE',
+      balance: newUserRole === 'driver' ? 100000 : 0,
+    };
+
+    setUsers((prev) => [newUser, ...prev]);
+    addLog('success', 'Tạo tài khoản mới', `Đã thêm ${newUser.name} với vai trò ${ROLE_LABEL[newUser.role]}`);
+    setNewUserName('');
+    setNewUserEmail('');
+    setNewUserPhone('');
+    setNewUserRole('staff');
+    setShowAddUserModal(false);
+  };
 
   const handleToggleUserStatus = (userId: string) => {
+    if (!canManageUsers) return;
     setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const newStatus = u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-          // Log system activity
-          const newLog: SystemLog = {
-            id: `L_${Date.now()}`,
-            type: 'warning',
-            title: 'Cập nhật trạng thái người dùng',
-            description: `Admin thay đổi trạng thái ${u.name} thành ${newStatus}`,
-            timeStr: 'Vừa xong',
-          };
-          setLogs((prevLogs) => [newLog, ...prevLogs]);
-          return { ...u, status: newStatus };
-        }
-        return u;
+      prev.map((user) => {
+        if (user.id !== userId) return user;
+        const status = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        addLog('warning', 'Cập nhật trạng thái người dùng', `${user.name} đã chuyển sang ${status === 'ACTIVE' ? 'hoạt động' : 'khóa'}`);
+        return { ...user, status };
       })
     );
   };
 
-  const handleAddNewUser = (e: FormEvent) => {
-    e.preventDefault();
-    if (!newUserName || !newUserEmail) return;
-
-    const newUser: User = {
-      id: `U00${users.length + 1}`,
-      name: newUserName,
-      email: newUserEmail,
-      phone: newUserPhone || '0901234567',
-      licensePlate: 'Chưa cập nhật',
-      role: newUserRole,
-      joinedDate: new Date().toLocaleDateString('vi-VN'),
-      status: 'ACTIVE',
-      balance: 0,
-    };
-
-    setUsers((prev) => [...prev, newUser]);
-    
-    // Log activity
-    const newLog: SystemLog = {
-      id: `L_${Date.now()}`,
-      type: 'success',
-      title: 'Tạo tài khoản mới',
-      description: `Đã thêm thành viên ${newUserName} với vai trò ${newUserRole}`,
-      timeStr: 'Vừa xong',
-    };
-    setLogs((prevLogs) => [newLog, ...prevLogs]);
-
-    // reset form
-    setNewUserName('');
-    setNewUserEmail('');
-    setNewUserPhone('');
-    setShowAddUserModal(false);
-  };
-
-  const handleUpdateSlotStatus = (slotId: string, status: 'available' | 'reserved' | 'occupied') => {
+  const handleUpdateSlotStatus = (slotId: string, status: ParkingSlot['status']) => {
     setSlots((prev) =>
-      prev.map((s) => {
-        if (s.id === slotId) {
-          let currentSession = undefined;
-          if (status === 'occupied') {
-            currentSession = {
-              licensePlate: newSlotPlate.toUpperCase() || '59A-123.45',
-              checkInTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-              estimatedHours: newSlotHours,
-              fee: newSlotHours * (s.vehicleType === 'oto' ? 20000 : 5000),
-            };
-          }
-          
-          // Log activity
-          const newLog: SystemLog = {
-            id: `L_${Date.now()}`,
-            type: status === 'occupied' ? 'info' : 'success',
-            title: 'Cập nhật trạng thái slot',
-            description: `Slot ${slotId} đổi sang trạng thái ${status === 'occupied' ? 'Đã đỗ' : status === 'reserved' ? 'Đã đặt' : 'Còn trống'}`,
-            timeStr: 'Vừa xong',
-          };
-          setLogs((prevLogs) => [newLog, ...prevLogs]);
+      prev.map((slot) => {
+        if (slot.id !== slotId) return slot;
 
-          return { ...s, status, currentSession };
-        }
-        return s;
+        const currentSession =
+          status === 'occupied'
+            ? {
+                licensePlate: newSlotPlate.trim().toUpperCase() || '59A-123.45',
+                checkInTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                estimatedHours: newSlotHours,
+                fee: newSlotHours * (slot.vehicleType === 'oto' ? 20000 : 5000),
+              }
+            : undefined;
+
+        addLog('info', 'Cập nhật slot', `Slot ${slotId} chuyển sang ${SLOT_STATUS[status].label}`);
+        return { ...slot, status, currentSession };
       })
     );
     setEditingSlot(null);
     setNewSlotPlate('');
+    setNewSlotHours(2);
   };
 
-  // Occupancy rate calculation
-  const occupancyRate = useMemo(() => {
-    const total = slots.length;
-    const occupied = slots.filter((s) => s.status === 'occupied').length;
-    return Math.round((occupied / total) * 100);
-  }, [slots]);
+  const addLog = (type: SystemLog['type'], title: string, description: string) => {
+    setLogs((prev) => [{ id: `L_${Date.now()}`, type, title, description, timeStr: 'Vừa xong' }, ...prev]);
+  };
 
   return (
-    <div className="bg-[#f8fafc] text-slate-800 min-h-screen font-sans flex flex-col md:flex-row relative">
-      
-      {/* Sidebar (Desktop only) */}
-      <nav className="hidden md:flex flex-col fixed left-0 top-0 h-full w-sidebar-width bg-[#00236f] py-6 px-4 border-r border-slate-800 z-40 text-white">
-        <div className="mb-10 px-2">
-          <div className="flex items-center gap-2">
-            <Video className="text-secondary w-6 h-6" />
-            <h1 className="text-lg font-black tracking-tight uppercase">PBMS Hệ Thống</h1>
-          </div>
-          <div className="mt-5 flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/10">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-300">
-              <img className="w-full h-full object-cover" src={ADMIN_AVATAR} alt="Admin profile" />
+    <div className="min-h-screen bg-slate-50 text-slate-800 md:flex">
+      <aside className={`hidden shrink-0 border-r border-blue-950/20 bg-primary text-white transition-all md:sticky md:top-0 md:flex md:h-screen md:flex-col ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Camera className="text-sky-300" size={22} />
+              {!sidebarCollapsed && <h1 className="truncate text-base font-black uppercase tracking-tight">PBMS Hệ Thống</h1>}
             </div>
-            <div>
-              <p className="font-bold text-xs">Quản Trị Viên</p>
-              <p className="text-[10px] text-white/60 font-semibold tracking-wider uppercase">{currentRole} Portal</p>
-            </div>
+            <button
+              onClick={() => setSidebarCollapsed((value) => !value)}
+              className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-black text-white/70 hover:bg-white/20"
+              title={sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+              type="button"
+            >
+              {sidebarCollapsed ? '>>' : '<<'}
+            </button>
           </div>
+
+          {!sidebarCollapsed && <div className="mt-5 rounded-xl border border-white/10 bg-white/10 p-3">
+            <div className="flex items-center gap-3">
+              <img className="h-11 w-11 rounded-xl object-cover" src={ADMIN_AVATAR} alt="Admin profile" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black">{ROLE_LABEL[currentRole]}</p>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/60">{currentRole} portal</p>
+              </div>
+            </div>
+          </div>}
         </div>
 
-        <div className="flex-1 flex flex-col gap-1.5">
-          {[
-            { id: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },
-            { id: 'map', label: 'Sơ đồ bãi xe', icon: Map },
-            { id: 'transactions', label: 'Giao dịch bãi xe', icon: Receipt },
-            { id: 'users', label: 'Quản lý người dùng', icon: Group },
-            { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart3 },
-            { id: 'settings', label: 'Cấu hình hệ thống', icon: Settings },
-          ].map((item) => {
+        <nav className="flex-1 space-y-1 px-3">
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
-            const isSelected = activeTab === item.id;
+            const selected = activeTab === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id as any)}
-                className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 text-xs font-bold text-left ${
-                  isSelected
-                    ? 'bg-[#39b8fd] text-[#004666] border-l-4 border-[#006591] shadow-lg shadow-[#39b8fd]/10 font-black scale-[1.01]'
-                    : 'text-white/85 hover:bg-white/5 hover:text-white'
+                onClick={() => setActiveTab(item.id)}
+                title={item.label}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-black transition ${
+                  selected ? 'bg-sky-300 text-blue-950 shadow-lg shadow-sky-950/10' : 'text-white/82 hover:bg-white/10 hover:text-white'
                 }`}
+                type="button"
               >
                 <Icon size={16} />
-                <span>{item.label}</span>
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        <div className="mt-auto">
+        <div className="p-3">
+          {!sidebarCollapsed && <RoleHelp role={currentRole} />}
           <button
             onClick={onLogout}
-            className="flex items-center gap-3 w-full px-3.5 py-3 rounded-xl text-white/80 hover:bg-rose-500/10 hover:text-rose-400 transition-all font-bold text-xs"
+            className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-xs font-black text-white/80 transition hover:bg-rose-500/10 hover:text-rose-300"
+            type="button"
           >
             <LogOut size={16} />
-            <span>Đăng xuất</span>
+            {!sidebarCollapsed && 'Đăng xuất'}
           </button>
         </div>
-      </nav>
+      </aside>
 
-      {/* Top Navigation Bar (Mobile only) */}
-      <header className="md:hidden flex justify-between items-center w-full px-4 h-16 bg-[#00236f] text-white fixed top-0 z-50 shadow-md">
-        <div className="font-bold text-sm uppercase tracking-wider">PBMS Hệ Thống Gửi Xe</div>
-        <div className="flex items-center gap-2">
-          <button onClick={onLogout} className="text-white hover:text-slate-200 p-1">
-            <LogOut size={18} />
-          </button>
-        </div>
+      <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between bg-primary px-4 text-white shadow-md md:hidden">
+        <div className="text-sm font-black uppercase">PBMS Hệ Thống</div>
+        <button onClick={onLogout} className="rounded-lg p-2 hover:bg-white/10" type="button">
+          <LogOut size={18} />
+        </button>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-grow md:ml-sidebar-width pt-20 md:pt-8 px-4 md:px-8 pb-24 md:pb-8 min-h-screen">
-        
-        {/* VIEW 1: DASHBOARD */}
+      <main className="min-w-0 flex-1 px-4 pb-24 pt-20 md:px-6 md:py-6 lg:px-8">
+        {activeTab === 'gate' && (
+          <Page title="Cổng Check-in / Check-out" subtitle="Bảng thao tác nhanh cho nhân viên cổng, ưu tiên tốc độ và ít nhập liệu.">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.1fr_320px]">
+              <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-black text-primary">Camera Capture</h3>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">LPR Online</span>
+                </div>
+                <div className="flex aspect-video items-center justify-center rounded-xl border border-slate-200 bg-slate-900 text-white">
+                  <div className="text-center">
+                    <ScanLine className="mx-auto text-sky-300" size={42} />
+                    <p className="mt-3 text-sm font-black">AI đang nhận diện biển số</p>
+                    <p className="mt-1 text-xs text-white/60">Camera cổng A · 192.168.1.101</p>
+                  </div>
+                </div>
+                <label className="mt-4 block text-xs font-black text-slate-500">
+                  Nhập biển số thủ công
+                  <input
+                    autoFocus
+                    value={manualPlate}
+                    onChange={(event) => setManualPlate(event.target.value.toUpperCase())}
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-2xl font-black uppercase tracking-wide text-primary outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10"
+                  />
+                </label>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+                  <button onClick={() => setGateMode('checkin')} className={`rounded-lg py-3 text-xs font-black ${gateMode === 'checkin' ? 'bg-white text-primary shadow-sm' : 'text-slate-500'}`} type="button">Check-in</button>
+                  <button onClick={() => setGateMode('checkout')} className={`rounded-lg py-3 text-xs font-black ${gateMode === 'checkout' ? 'bg-white text-primary shadow-sm' : 'text-slate-500'}`} type="button">Check-out</button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <GateInfo label="Biển số" value={manualPlate || 'Chưa nhận diện'} strong />
+                  <GateInfo label="Loại xe" value="Ô tô" />
+                  <GateInfo label="Slot gợi ý" value={gateMode === 'checkin' ? 'A-102' : 'A-101'} />
+                  <GateInfo label="Thanh toán" value={gateMode === 'checkin' ? 'Đã đặt trước' : 'Đã thanh toán'} status="success" />
+                  <GateInfo label="Phí dự kiến" value={gateMode === 'checkin' ? '60.000 VNĐ' : '80.000 VNĐ'} />
+                  <GateInfo label="Trạng thái cổng" value="Sẵn sàng mở" status="warning" />
+                </div>
+
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-800">
+                  Nếu AI nhận diện sai hoặc không tìm thấy đặt chỗ, nhân viên có thể sửa biển số thủ công trước khi xác nhận.
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-black text-primary">Gate Control</h3>
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+                  <DoorOpen className="mx-auto text-emerald-700" size={40} />
+                  <p className="mt-2 text-sm font-black text-emerald-800">Barrier sẵn sàng</p>
+                  <p className="mt-1 text-xs font-semibold text-emerald-700">Mở trong 5 giây sau xác nhận</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const message = gateMode === 'checkin' ? 'Check-in thành công, barrier đã mở.' : 'Check-out thành công, đã đóng phiên gửi xe.';
+                    setGateToast(message);
+                    addLog('success', gateMode === 'checkin' ? 'Xác nhận check-in' : 'Xác nhận check-out', `${manualPlate} · ${message}`);
+                    window.setTimeout(() => setGateToast(''), 2400);
+                  }}
+                  className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white shadow-md transition hover:bg-primary/95"
+                  type="button"
+                >
+                  <DoorOpen size={18} />
+                  {gateMode === 'checkin' ? 'Xác nhận Check-in' : 'Xác nhận Check-out'}
+                </button>
+                <button className="mt-3 w-full rounded-xl border border-rose-200 bg-rose-50 py-3 text-xs font-black text-rose-700" type="button">
+                  Báo sự cố camera / LPR
+                </button>
+              </section>
+            </div>
+
+            {gateToast && (
+              <div className="fixed bottom-24 right-5 z-50 rounded-xl border border-emerald-200 bg-white p-4 text-sm font-black text-emerald-700 shadow-2xl">
+                {gateToast}
+              </div>
+            )}
+          </Page>
+        )}
+
         {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Header section */}
-            <header className="flex justify-between items-end bg-white p-4 rounded-2xl border border-slate-200/50 shadow-sm">
-              <div>
-                <h2 className="text-xl font-extrabold text-primary flex items-center gap-2">
-                  Bảng điều khiển
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 status-dot-pulse inline-block"></span>
-                    Hệ thống ổn định
-                  </span>
-                </h2>
-                <p className="text-xs text-slate-500 font-medium mt-1">Chào mừng trở lại, Admin. Hệ thống giám sát đỗ xe đang trực tuyến.</p>
-              </div>
-              <div className="hidden sm:flex gap-2">
-                <button
-                  onClick={() => alert('Đang đồng bộ dữ liệu với cảm biến bãi xe...')}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-primary shadow-sm"
-                >
-                  <RefreshCw size={14} />
-                  Làm mới
-                </button>
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white hover:bg-primary/95 rounded-xl text-xs font-bold shadow-md shadow-primary/10"
-                >
-                  <UserPlus size={14} />
-                  Thêm báo cáo
-                </button>
-              </div>
-            </header>
+          <Page title="Bảng điều khiển" subtitle={`Tổng quan vận hành dành cho ${ROLE_LABEL[currentRole].toLowerCase()}.`}>
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <KpiCard icon={<Database size={18} />} label="Tổng slot" value={slots.length.toString()} hint={`${occupancyRate}% đang sử dụng`} />
+              <KpiCard icon={<Car size={18} />} label="Slot trống" value={slots.filter((slot) => slot.status === 'available').length.toString()} hint="Có thể đặt ngay" tone="emerald" />
+              <KpiCard icon={<Wallet size={18} />} label="Doanh thu" value={`${totalRevenue.toLocaleString('vi-VN')} VNĐ`} hint={`${todayTransactions} GD hôm nay`} tone="amber" />
+              <KpiCard icon={<Shield size={18} />} label="Vai trò" value={ROLE_LABEL[currentRole]} hint={visibleNavItems.map((item) => item.label).join(', ')} tone="rose" />
+            </section>
 
-            {/* Bento KPI Grid */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Database status card */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div className="p-2.5 bg-blue-50 text-primary rounded-xl">
-                    <Database size={18} />
-                  </div>
-                  <div className="status-dot-pulse"></div>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cơ sở dữ liệu</h3>
-                  <p className="text-lg font-black text-slate-800 mt-0.5">Hoạt động</p>
-                  <p className="text-[10px] text-secondary mt-1.5 flex items-center gap-1 font-semibold">
-                    <Activity size={12} />
-                    Thời gian phản hồi: 12ms
-                  </p>
+            <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+                <PanelHeader title="Người dùng gần đây" action={canManageUsers ? <button onClick={() => setShowAddUserModal(true)} className="rounded-lg bg-primary px-3 py-2 text-xs font-black text-white">Thêm</button> : null} />
+                <div className="overflow-x-auto">
+                  <UserTable users={users.slice(0, 6)} canManage={canManageUsers} onToggleStatus={handleToggleUserStatus} onDelete={(id) => setUsers((prev) => prev.filter((user) => user.id !== id))} />
                 </div>
               </div>
 
-              {/* LPR Status card */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                    <Video size={18} />
-                  </div>
-                  <div className="status-dot-pulse"></div>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nhận diện LPR</h3>
-                  <p className="text-lg font-black text-slate-800 mt-0.5">Trực tuyến</p>
-                  <p className="text-[10px] text-emerald-600 mt-1.5 flex items-center gap-1 font-semibold">
-                    <CheckCircle size={12} />
-                    Độ chính xác: 99.4%
-                  </p>
-                </div>
-              </div>
-
-              {/* VNPAY status card */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-                    <Wallet size={18} />
-                  </div>
-                  <div className="status-dot-pulse"></div>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cổng VNPAY</h3>
-                  <p className="text-lg font-black text-slate-800 mt-0.5">Kết nối</p>
-                  <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1 font-semibold">
-                    <TrendingUp size={12} />
-                    GD thành công: 242
-                  </p>
-                </div>
-              </div>
-
-              {/* Mail Server status card */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
-                    <Mail size={18} />
-                  </div>
-                  <div className="status-dot-pulse"></div>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email Server</h3>
-                  <p className="text-lg font-black text-slate-800 mt-0.5">Sẵn sàng</p>
-                  <p className="text-[10px] text-rose-600 mt-1.5 flex items-center gap-1 font-semibold">
-                    <Clock size={12} />
-                    Đã gửi: 1.2k hôm nay
-                  </p>
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <PanelHeader title="Nhật ký hệ thống" />
+                <div className="space-y-3 p-4">
+                  {logs.slice(0, 6).map((log) => (
+                    <div key={log.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      <p className="text-xs font-black text-slate-800">{log.title}</p>
+                      <p className="mt-1 text-[11px] font-medium leading-5 text-slate-500">{log.description}</p>
+                      <p className="mt-2 text-[10px] font-bold text-slate-400">{log.timeStr}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
-
-            {/* Split layout: Users List vs System Logs */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* User management table preview */}
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/50 shadow-sm overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Quản lý người dùng</h3>
-                  <div className="flex gap-2">
-                    <div className="relative">
-                      <input
-                        value={userSearch}
-                        onChange={(e) => setUserSearch(e.target.value)}
-                        className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary transition-all w-40"
-                        placeholder="Tìm người dùng..."
-                        type="text"
-                      />
-                      <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
-                    </div>
-                    <button
-                      onClick={() => setShowAddUserModal(true)}
-                      className="p-1.5 bg-primary text-white rounded-lg hover:scale-105 active:scale-95 transition-all"
-                      title="Thêm thành viên"
-                    >
-                      <UserPlus size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-100/60 text-slate-400 uppercase font-bold text-[9px] tracking-wider border-b border-slate-200/50">
-                      <tr>
-                        <th className="p-3.5">Người dùng</th>
-                        <th className="p-3.5">Vai trò</th>
-                        <th className="p-3.5">Trạng thái</th>
-                        <th className="p-3.5">Ngày tham gia</th>
-                        <th className="p-3.5 text-center">Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {filteredUsers.length > 0 ? (
-                        filteredUsers.map((user) => (
-                          <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="p-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 text-primary flex items-center justify-center font-black text-xs">
-                                  {user.name.split(' ').pop()?.substring(0, 2).toUpperCase() || 'TX'}
-                                </div>
-                                <div>
-                                  <div className="font-extrabold text-slate-800">{user.name}</div>
-                                  <div className="text-[10px] text-slate-400 font-semibold">{user.email}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-3.5">
-                              <span className="font-bold capitalize">{user.role}</span>
-                            </td>
-                            <td className="p-3.5">
-                              <button
-                                onClick={() => handleToggleUserStatus(user.id)}
-                                className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all ${
-                                  user.status === 'ACTIVE'
-                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/50'
-                                    : 'bg-slate-100 text-slate-400 border border-slate-200/50'
-                                }`}
-                              >
-                                {user.status === 'ACTIVE' ? 'Hoạt động' : 'Ngoại tuyến'}
-                              </button>
-                            </td>
-                            <td className="p-3.5 font-mono text-slate-500 font-bold">{user.joinedDate}</td>
-                            <td className="p-3.5 text-center">
-                              <button
-                                onClick={() => alert(`Chi tiết người dùng: ${user.name} - Biển số xe: ${user.licensePlate}`)}
-                                className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-primary transition-colors"
-                              >
-                                <Eye size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="p-8 text-center text-slate-400">
-                            Không tìm thấy tài khoản nào khớp.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Recent system logs preview */}
-              <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col justify-between overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Nhật ký hệ thống</h3>
-                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full status-dot-pulse"></span>
-                </div>
-
-                <div className="p-4 flex-grow space-y-4 max-h-[300px] overflow-y-auto">
-                  {logs.map((log) => {
-                    const colorMap = {
-                      success: 'bg-emerald-500',
-                      info: 'bg-blue-500',
-                      warning: 'bg-amber-500',
-                      error: 'bg-rose-500',
-                    };
-                    return (
-                      <div key={log.id} className="flex gap-3 text-xs">
-                        <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${colorMap[log.type]}`}></div>
-                        <div>
-                          <p className="font-extrabold text-slate-800 leading-tight">{log.title}</p>
-                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{log.description}</p>
-                          <span className="text-[9px] font-mono text-slate-400 font-semibold">{log.timeStr}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
-                  <button
-                    onClick={() => alert('Nhật ký đã được đồng bộ hóa đầy đủ với máy chủ.')}
-                    className="text-xs font-bold text-secondary hover:underline"
-                  >
-                    Xem tất cả nhật ký
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          </Page>
         )}
 
-        {/* VIEW 2: PARKING MAP & SLOT CONTROL */}
         {activeTab === 'map' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <header className="bg-white p-4 rounded-2xl border border-slate-200/50 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-              <div>
-                <h2 className="text-xl font-extrabold text-primary">Sơ đồ bãi đỗ xe</h2>
-                <p className="text-xs text-slate-500 font-medium mt-1">
-                  Giám sát các chỗ đậu xe và chỉnh sửa trạng thái vật lý trực tiếp.
-                </p>
-              </div>
+          <Page title="Sơ đồ bãi xe" subtitle="Theo dõi trạng thái từng slot và cập nhật xe vào bãi.">
+            <div className="flex flex-wrap gap-2">
+              {['Tầng 1', 'Tầng 2', 'Tầng 3'].map((floor) => (
+                <button
+                  key={floor}
+                  onClick={() => setMapFloorFilter(floor)}
+                  className={`rounded-xl px-4 py-2 text-xs font-black transition ${mapFloorFilter === floor ? 'bg-primary text-white' : 'border border-slate-200 bg-white text-slate-600'}`}
+                  type="button"
+                >
+                  {floor}
+                </button>
+              ))}
+            </div>
 
-              {/* Floor selector tab */}
-              <div className="flex bg-slate-100 rounded-xl p-1 gap-1 w-fit">
-                {['Tầng 1', 'Tầng 2', 'Tầng hầm'].map((floor) => (
+            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">
+                {floorSlots.map((slot) => (
                   <button
-                    key={floor}
+                    key={slot.id}
                     onClick={() => {
-                      setMapFloorFilter(floor);
-                      setEditingSlot(null);
+                      setEditingSlot(slot);
+                      setNewSlotPlate(slot.currentSession?.licensePlate || '');
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      mapFloorFilter === floor ? 'bg-primary text-white shadow-md' : 'text-slate-400'
-                    }`}
+                    className={`min-h-24 rounded-xl border p-3 text-left transition hover:shadow-md ${SLOT_STATUS[slot.status].card}`}
+                    type="button"
                   >
-                    {floor}
+                    <div className="flex items-center justify-between">
+                      <span className="text-base font-black">{slot.id}</span>
+                      <Car size={16} />
+                    </div>
+                    <p className="mt-2 text-[11px] font-black uppercase">{SLOT_STATUS[slot.status].label}</p>
+                    <p className="mt-1 truncate text-[10px] font-semibold opacity-80">{slot.currentSession?.licensePlate || (slot.vehicleType === 'oto' ? 'Ô tô' : 'Xe máy')}</p>
                   </button>
                 ))}
               </div>
-            </header>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Map grid view */}
-              <div className="lg:col-span-2 bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest">
-                      Khu Vực Bãi Xe - {mapFloorFilter}
-                    </h3>
-                    <span className="text-xs font-extrabold text-secondary bg-blue-50 px-2.5 py-1 rounded-lg">
-                      Tỉ lệ lấp đầy: {occupancyRate}%
-                    </span>
-                  </div>
-
-                  <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col gap-5">
-                    {/* Top Slots */}
-                    <div className="grid grid-cols-4 gap-3">
-                      {slots
-                        .filter((s) => s.floor === mapFloorFilter)
-                        .slice(0, 4)
-                        .map((slot) => {
-                          const isEditing = editingSlot?.id === slot.id;
-                          const bgClass =
-                            slot.status === 'available'
-                              ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
-                              : slot.status === 'reserved'
-                              ? 'bg-amber-50 border-amber-400 text-amber-800'
-                              : 'bg-rose-50 border-rose-300 text-rose-800';
-
-                          return (
-                            <button
-                              key={slot.id}
-                              onClick={() => setEditingSlot(slot)}
-                              className={`h-20 rounded-xl border-2 flex flex-col items-center justify-between p-2 font-bold transition-all ${bgClass} ${
-                                isEditing ? 'ring-4 ring-primary scale-105 shadow-md' : 'hover:scale-[1.02]'
-                              }`}
-                            >
-                              <span className="text-xs">{slot.id}</span>
-                              <span className="text-[9px] font-mono uppercase truncate w-full text-center">
-                                {slot.status === 'occupied' ? slot.currentSession?.licensePlate : slot.status === 'reserved' ? 'Đã Đặt' : 'Còn trống'}
-                              </span>
-                              <span className="text-[7px] text-slate-400 font-semibold uppercase tracking-wider">
-                                {slot.vehicleType === 'oto' ? 'Ô tô' : 'Xe máy'}
-                              </span>
-                            </button>
-                          );
-                        })}
-                    </div>
-
-                    {/* Lane */}
-                    <div className="h-10 border-y-2 border-dashed border-slate-300 flex items-center justify-between px-6 text-slate-400 text-[9px] font-mono font-black tracking-widest select-none uppercase">
-                      <span>◀ LỐI VÀO DRIVEWAY</span>
-                      <span>◀ LỐI RA DRIVEWAY</span>
-                    </div>
-
-                    {/* Bottom Slots */}
-                    <div className="grid grid-cols-4 gap-3">
-                      {slots
-                        .filter((s) => s.floor === mapFloorFilter)
-                        .slice(4)
-                        .map((slot) => {
-                          const isEditing = editingSlot?.id === slot.id;
-                          const bgClass =
-                            slot.status === 'available'
-                              ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
-                              : slot.status === 'reserved'
-                              ? 'bg-amber-50 border-amber-400 text-amber-800'
-                              : 'bg-rose-50 border-rose-300 text-rose-800';
-
-                          return (
-                            <button
-                              key={slot.id}
-                              onClick={() => setEditingSlot(slot)}
-                              className={`h-20 rounded-xl border-2 flex flex-col items-center justify-between p-2 font-bold transition-all ${bgClass} ${
-                                isEditing ? 'ring-4 ring-primary scale-105 shadow-md' : 'hover:scale-[1.02]'
-                              }`}
-                            >
-                              <span className="text-xs">{slot.id}</span>
-                              <span className="text-[9px] font-mono uppercase truncate w-full text-center">
-                                {slot.status === 'occupied' ? slot.currentSession?.licensePlate : slot.status === 'reserved' ? 'Đã Đặt' : 'Còn trống'}
-                              </span>
-                              <span className="text-[7px] text-slate-400 font-semibold uppercase tracking-wider">
-                                {slot.vehicleType === 'oto' ? 'Ô tô' : 'Xe máy'}
-                              </span>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slot modification controls card */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col justify-between">
-                {editingSlot ? (
-                  <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
-                    <div className="pb-3 border-b border-slate-150">
-                      <h4 className="font-extrabold text-sm text-primary">Điều khiển Slot {editingSlot.id}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5">({editingSlot.floor})</p>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <p className="font-bold text-slate-500 uppercase tracking-wide text-[9px]">Trạng thái hiện tại:</p>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => handleUpdateSlotStatus(editingSlot.id, 'available')}
-                          className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase transition-all border ${
-                            editingSlot.status === 'available'
-                              ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-sm font-extrabold'
-                              : 'bg-slate-50 text-slate-400 border-slate-200'
-                          }`}
-                        >
-                          Giải phóng (Trống)
-                        </button>
-                        <button
-                          onClick={() => handleUpdateSlotStatus(editingSlot.id, 'reserved')}
-                          className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase transition-all border ${
-                            editingSlot.status === 'reserved'
-                              ? 'bg-amber-50 border-amber-400 text-amber-700 shadow-sm font-extrabold'
-                              : 'bg-slate-50 text-slate-400 border-slate-200'
-                          }`}
-                        >
-                          Đặt trước
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Occupy Form */}
-                    <div className="space-y-3 pt-3 border-t border-slate-100">
-                      <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wide text-[9px]">Mô phỏng đỗ xe lập tức:</h5>
-                      <div className="space-y-2">
-                        <input
-                          value={newSlotPlate}
-                          onChange={(e) => setNewSlotPlate(e.target.value)}
-                          placeholder="Nhập biển số (VD: 51G-123.45)"
-                          className="w-full text-xs font-mono uppercase tracking-wider px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary"
-                        />
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-[10px] text-slate-400 font-bold">Thời gian ước tính:</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="12"
-                            value={newSlotHours}
-                            onChange={(e) => setNewSlotHours(parseInt(e.target.value))}
-                            className="w-16 text-center text-xs px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg"
-                          />
-                          <span className="text-[10px] text-slate-400 font-bold">giờ</span>
-                        </div>
-                        <button
-                          onClick={() => handleUpdateSlotStatus(editingSlot.id, 'occupied')}
-                          className="w-full py-2.5 bg-primary text-white hover:bg-primary/95 text-xs font-bold uppercase rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <CheckCircle size={14} />
-                          <span>Ghi nhận Xe Đỗ</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {editingSlot.status === 'occupied' && editingSlot.currentSession && (
-                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1.5 text-xs">
-                        <p className="font-extrabold text-[10px] text-slate-400 uppercase tracking-wider">Thông tin phiên hiện tại</p>
-                        <p className="font-mono text-xs font-extrabold uppercase text-slate-800">Biển xe: {editingSlot.currentSession.licensePlate}</p>
-                        <p className="text-slate-500 font-semibold text-[10px]">Thời điểm check-in: {editingSlot.currentSession.checkInTime}</p>
-                        <p className="text-slate-500 font-semibold text-[10px]">Thời lượng dự kiến: {editingSlot.currentSession.estimatedHours} giờ</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400 flex-grow py-12 gap-2 text-center">
-                    <Info size={28} className="text-secondary" />
-                    <p className="text-xs font-bold">Vui lòng nhấp vào một vị trí đỗ xe trong sơ đồ để xem thông tin chi tiết hoặc cập nhật trạng thái.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+            </section>
+          </Page>
         )}
 
-        {/* VIEW 3: TRANSACTIONS LIST */}
         {activeTab === 'transactions' && (
-          <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-4 space-y-4 animate-in fade-in duration-300">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Giao dịch bãi xe</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">Danh sách các hóa đơn thanh toán đặt chỗ đỗ xe qua VNPAY & ví điện tử.</p>
-              </div>
-              <div className="relative">
-                <input
-                  value={txSearch}
-                  onChange={(e) => setTxSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary transition-all w-48 font-semibold"
-                  placeholder="Tìm biển số, mã hóa đơn..."
-                  type="text"
-                />
-                <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50/60 text-slate-400 uppercase font-bold text-[9px] tracking-wider border-b border-slate-150">
-                  <tr>
-                    <th className="p-3.5">Mã Giao dịch</th>
-                    <th className="p-3.5">Biển số xe</th>
-                    <th className="p-3.5">Vị trí</th>
-                    <th className="p-3.5">Số tiền</th>
-                    <th className="p-3.5">Phương thức</th>
-                    <th className="p-3.5">Thời gian</th>
-                    <th className="p-3.5">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-slate-50/30 transition-colors">
-                        <td className="p-3.5 font-mono font-extrabold text-primary">{tx.id}</td>
-                        <td className="p-3.5 font-mono uppercase font-bold">{tx.licensePlate}</td>
-                        <td className="p-3.5 font-bold">Slot {tx.slotId}</td>
-                        <td className="p-3.5 font-black text-slate-800">{tx.amount.toLocaleString('vi-VN')} VNĐ</td>
-                        <td className="p-3.5 font-semibold">{tx.method}</td>
-                        <td className="p-3.5 text-slate-400 font-bold">{tx.timeStr}</td>
-                        <td className="p-3.5">
-                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-extrabold uppercase tracking-wide">
-                            Thành công
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-400">
-                        Không tìm thấy lịch sử giao dịch nào.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Page title="Giao dịch bãi xe" subtitle="Tra cứu thanh toán theo mã giao dịch, biển số hoặc slot.">
+            <SearchBox value={txSearch} onChange={setTxSearch} placeholder="Tìm giao dịch, biển số, slot..." />
+            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <TransactionTable transactions={filteredTransactions} />
+            </section>
+          </Page>
         )}
 
-        {/* VIEW 4: USER MGMT */}
         {activeTab === 'users' && (
-          <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-4 space-y-4 animate-in fade-in duration-300">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Quản lý người dùng</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">Quản lý thông tin, vai trò, số dư ví và trạng thái của tất cả nhân viên và tài xế.</p>
-              </div>
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white hover:bg-primary/95 rounded-xl text-xs font-bold shadow-md shadow-primary/10 w-fit"
-              >
-                <UserPlus size={14} />
-                Thêm Thành Viên
+          <Page title="Quản lý người dùng" subtitle="Quản lý tài xế, nhân viên, quản lý và trạng thái tài khoản.">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <SearchBox value={userSearch} onChange={setUserSearch} placeholder="Tìm người dùng, email, SĐT, biển số..." />
+              <button onClick={() => setShowAddUserModal(true)} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black text-white" type="button">
+                <UserPlus size={16} />
+                Thêm người dùng
               </button>
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50/60 text-slate-400 uppercase font-bold text-[9px] tracking-wider border-b border-slate-150">
-                  <tr>
-                    <th className="p-3.5">Họ &amp; Tên</th>
-                    <th className="p-3.5">Vai trò</th>
-                    <th className="p-3.5">Số điện thoại</th>
-                    <th className="p-3.5">Biển số</th>
-                    <th className="p-3.5">Số dư ví</th>
-                    <th className="p-3.5">Trạng thái</th>
-                    <th className="p-3.5 text-center">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/30 transition-colors">
-                      <td className="p-3.5">
-                        <div>
-                          <p className="font-extrabold text-slate-800">{u.name}</p>
-                          <p className="text-[10px] text-slate-400 font-semibold">{u.email}</p>
-                        </div>
-                      </td>
-                      <td className="p-3.5 font-bold uppercase text-secondary text-[10px]">{u.role}</td>
-                      <td className="p-3.5 font-mono font-bold text-slate-500">{u.phone}</td>
-                      <td className="p-3.5 font-mono uppercase font-bold text-slate-600">{u.licensePlate}</td>
-                      <td className="p-3.5 font-black text-slate-800">{u.balance.toLocaleString('vi-VN')} VNĐ</td>
-                      <td className="p-3.5">
-                        <button
-                          onClick={() => handleToggleUserStatus(u.id)}
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all ${
-                            u.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                              : 'bg-slate-100 text-slate-400 border border-slate-200'
-                          }`}
-                        >
-                          {u.status === 'ACTIVE' ? 'Hoạt động' : 'Khóa'}
-                        </button>
-                      </td>
-                      <td className="p-3.5 text-center">
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Xóa tài khoản ${u.name}?`)) {
-                              setUsers((prev) => prev.filter((usr) => usr.id !== u.id));
-                            }
-                          }}
-                          className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
-                          title="Xóa thành viên"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <UserTable users={filteredUsers} canManage={canManageUsers} onToggleStatus={handleToggleUserStatus} onDelete={(id) => setUsers((prev) => prev.filter((user) => user.id !== id))} />
+            </section>
+          </Page>
         )}
 
-        {/* VIEW 5: REPORTS / CHARTS */}
         {activeTab === 'reports' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <header className="bg-white p-4 rounded-2xl border border-slate-200/50 shadow-sm">
-              <h2 className="text-xl font-extrabold text-primary">Báo cáo doanh thu &amp; Hiệu suất</h2>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Số liệu phân tích tuần về doanh thu và công suất sử dụng bãi xe PBMS.
-              </p>
-            </header>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Daily Revenue custom SVG chart */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Doanh thu tuần này (VNĐ)</h4>
-                  <span className="text-sm font-black text-primary">Tổng: 11.900.000 VNĐ</span>
-                </div>
-                
-                {/* SVG Visualizing bar chart */}
-                <div className="h-60 w-full flex items-end justify-between pt-6 border-b border-slate-200 px-2">
-                  {[
-                    { day: 'T2', val: 12 },
-                    { day: 'T3', val: 14.5 },
-                    { day: 'T4', val: 13 },
-                    { day: 'T5', val: 16 },
-                    { day: 'T6', val: 18.5 },
-                    { day: 'T7', val: 24 },
-                    { day: 'CN', val: 21 },
-                  ].map((bar, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-2 w-8 group cursor-pointer">
-                      <div className="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity mb-1">
-                        {bar.val}M
-                      </div>
-                      <div
-                        style={{ height: `${bar.val * 7}px` }}
-                        className="w-full bg-primary hover:bg-[#39b8fd] rounded-t-lg transition-all shadow-md shadow-primary/5"
-                      ></div>
-                      <span className="text-[10px] font-bold text-slate-400 mt-1">{bar.day}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Occupancy Rate line chart */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Tần suất lấp đầy bãi xe (%)</h4>
-                  <span className="text-sm font-black text-secondary">Trung bình: 82%</span>
-                </div>
-
-                {/* Custom Line/Area chart inside SVG */}
-                <div className="h-60 w-full relative pt-6 border-b border-slate-200 flex items-end">
-                  <svg className="w-full h-full absolute inset-0" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#39b8fd" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#39b8fd" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M0 80 Q 15 70, 30 75 T 60 40 T 90 20 T 100 10 L 100 100 L 0 100 Z"
-                      fill="url(#chartGrad)"
-                    />
-                    <path
-                      d="M0 80 Q 15 70, 30 75 T 60 40 T 90 20 T 100 10"
-                      fill="none"
-                      stroke="#006591"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                  <div className="flex justify-between w-full z-10 px-2 pb-1 text-[10px] font-bold text-slate-400">
-                    <span>Thứ 2</span>
-                    <span>Thứ 4</span>
-                    <span>Thứ 6</span>
-                    <span>Chủ Nhật</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Page title="Báo cáo doanh thu & hiệu suất" subtitle="Dữ liệu mock theo tuần, phục vụ trình bày và kiểm thử UI.">
+            <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              <ChartCard
+                title="Doanh thu tuần này"
+                total={`${REVENUE_DATA_WEEK.reduce((sum, item) => sum + item.revenue, 0).toLocaleString('vi-VN')} VNĐ`}
+                max={Math.max(...REVENUE_DATA_WEEK.map((item) => item.revenue))}
+                data={REVENUE_DATA_WEEK.map((item) => ({ label: item.day.replace('Thứ ', 'T'), value: item.revenue, display: `${Math.round(item.revenue / 100000) / 10}M` }))}
+              />
+              <ChartCard
+                title="Công suất sử dụng"
+                total={`${Math.round(REVENUE_DATA_WEEK.reduce((sum, item) => sum + item.occupancy, 0) / REVENUE_DATA_WEEK.length)}% trung bình`}
+                max={100}
+                data={REVENUE_DATA_WEEK.map((item) => ({ label: item.day.replace('Thứ ', 'T'), value: item.occupancy, display: `${item.occupancy}%` }))}
+                tone="secondary"
+              />
+            </section>
+          </Page>
         )}
 
-        {/* VIEW 6: SYSTEM SETTINGS */}
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-6 animate-in fade-in duration-300">
-            <div>
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Cấu hình bãi xe thông minh</h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">Thiết lập tham số phần cứng bãi đỗ xe và định giá.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Pricing settings */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest text-[9px] border-b pb-1.5">Bảng giá xe giờ đỗ</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-600">Đơn giá Ô tô (/giờ):</span>
-                    <input
-                      type="number"
-                      defaultValue="20000"
-                      className="w-28 text-center bg-slate-50 border border-slate-200 rounded-xl py-1.5 focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-600">Đơn giá Xe máy (/giờ):</span>
-                    <input
-                      type="number"
-                      defaultValue="5000"
-                      className="w-28 text-center bg-slate-50 border border-slate-200 rounded-xl py-1.5 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Hardware connection */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest text-[9px] border-b pb-1.5">Cấu hình thiết bị camera</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-600">IP LPR Camera 1 (Lối vào):</span>
-                    <input
-                      type="text"
-                      defaultValue="192.168.1.101"
-                      className="w-40 text-center bg-slate-50 border border-slate-200 rounded-xl py-1.5 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-600">IP LPR Camera 2 (Lối ra):</span>
-                    <input
-                      type="text"
-                      defaultValue="192.168.1.102"
-                      className="w-40 text-center bg-slate-50 border border-slate-200 rounded-xl py-1.5 focus:outline-none font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          <Page title="Cấu hình hệ thống" subtitle="Chỉ quản trị viên được thay đổi tham số vận hành.">
+            <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              <SettingsPanel title="Bảng giá">
+                <SettingInput label="Đơn giá ô tô / giờ" value="20000" suffix="VNĐ" disabled={!canConfigure} />
+                <SettingInput label="Đơn giá xe máy / giờ" value="5000" suffix="VNĐ" disabled={!canConfigure} />
+                <SettingInput label="Thời gian giữ chỗ tối đa" value="15" suffix="phút" disabled={!canConfigure} />
+              </SettingsPanel>
+              <SettingsPanel title="Thiết bị">
+                <SettingInput label="Camera lối vào" value="192.168.1.101" disabled={!canConfigure} />
+                <SettingInput label="Camera lối ra" value="192.168.1.102" disabled={!canConfigure} />
+                <SettingInput label="Cảnh báo công suất" value="90" suffix="%" disabled={!canConfigure} />
+              </SettingsPanel>
+            </section>
             <button
-              onClick={() => {
-                alert('Cấu hình bãi xe đã được lưu và cập nhật đồng bộ toàn bộ cảm biến bãi đỗ!');
-              }}
-              className="px-4 py-2 bg-primary text-white hover:bg-primary/95 rounded-xl text-xs font-bold shadow-md shadow-primary/10 mt-4"
+              onClick={() => alert('Cấu hình hệ thống đã được lưu trong bản demo.')}
+              className="w-fit rounded-xl bg-primary px-5 py-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canConfigure}
+              type="button"
             >
-              Lưu cấu hình hệ thống
+              Lưu cấu hình
             </button>
-          </div>
+          </Page>
         )}
       </main>
 
-      {/* Add User Modal */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 w-full max-w-sm shadow-2xl animate-in zoom-in duration-300">
-            <h4 className="text-sm font-bold text-primary uppercase tracking-wider mb-4 border-b pb-2">Thêm Nhân viên / Tài xế</h4>
-            
-            <form onSubmit={handleAddNewUser} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Họ và tên</label>
-                <input
-                  required
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  placeholder="Nhập tên"
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-1 focus:ring-secondary"
-                />
-              </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-slate-200 bg-white px-2 py-2 md:hidden">
+        {visibleNavItems.slice(0, 4).map((item) => {
+          const Icon = item.icon;
+          return (
+            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center gap-1 rounded-xl py-1.5 text-[9px] font-black ${activeTab === item.id ? 'text-primary' : 'text-slate-400'}`} type="button">
+              <Icon size={17} />
+              {item.label.split(' ')[0]}
+            </button>
+          );
+        })}
+      </nav>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Email</label>
-                <input
-                  required
-                  type="email"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  placeholder="Nhập email"
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-1 focus:ring-secondary"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Số điện thoại</label>
-                <input
-                  value={newUserPhone}
-                  onChange={(e) => setNewUserPhone(e.target.value)}
-                  placeholder="Nhập sđt"
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-1 focus:ring-secondary"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Vai trò</label>
-                <select
-                  value={newUserRole}
-                  onChange={(e: any) => setNewUserRole(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-none"
-                >
-                  <option value="staff">Nhân viên (Staff)</option>
-                  <option value="manager">Quản lý (Manager)</option>
-                  <option value="admin">Quản trị (Admin)</option>
-                  <option value="driver">Tài xế (Driver)</option>
-                </select>
-              </div>
-
-              <div className="flex gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAddUserModal(false)}
-                  className="flex-1 py-2 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/95 transition-all shadow-md"
-                >
-                  Thêm mới
-                </button>
-              </div>
-            </form>
+      {editingSlot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-black text-primary">Cập nhật slot {editingSlot.id}</h3>
+            <p className="mt-1 text-xs font-medium text-slate-500">{editingSlot.floor} · Zone {editingSlot.zone}</p>
+            <div className="mt-4 space-y-3">
+              <input value={newSlotPlate} onChange={(event) => setNewSlotPlate(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold uppercase outline-none focus:border-secondary" placeholder="Biển số xe" />
+              <input value={newSlotHours} min={1} max={24} onChange={(event) => setNewSlotHours(Number(event.target.value))} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary" type="number" />
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              <button onClick={() => handleUpdateSlotStatus(editingSlot.id, 'available')} className="rounded-xl border border-emerald-200 bg-emerald-50 py-2 text-xs font-black text-emerald-700" type="button">Trống</button>
+              <button onClick={() => handleUpdateSlotStatus(editingSlot.id, 'reserved')} className="rounded-xl border border-amber-200 bg-amber-50 py-2 text-xs font-black text-amber-700" type="button">Đã đặt</button>
+              <button onClick={() => handleUpdateSlotStatus(editingSlot.id, 'occupied')} className="rounded-xl border border-rose-200 bg-rose-50 py-2 text-xs font-black text-rose-700" type="button">Đang đỗ</button>
+            </div>
+            <button onClick={() => setEditingSlot(null)} className="mt-3 w-full rounded-xl border border-slate-200 py-2 text-xs font-black text-slate-500" type="button">Đóng</button>
           </div>
         </div>
       )}
 
-      {/* Navigation bar at bottom (Mobile only, hidden on desktop) */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-2 py-3 pb-safe bg-white border-t border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center justify-center ${activeTab === 'dashboard' ? 'text-primary font-bold' : 'text-slate-400'}`}
-        >
-          <LayoutDashboard size={18} />
-          <span className="text-[9px] mt-0.5">Trang chủ</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('map')}
-          className={`flex flex-col items-center justify-center ${activeTab === 'map' ? 'text-primary font-bold' : 'text-slate-400'}`}
-        >
-          <Map size={18} />
-          <span className="text-[9px] mt-0.5">Sơ đồ bãi xe</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('transactions')}
-          className={`flex flex-col items-center justify-center ${activeTab === 'transactions' ? 'text-primary font-bold' : 'text-slate-400'}`}
-        >
-          <Receipt size={18} />
-          <span className="text-[9px] mt-0.5">Lịch sử GD</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('users')}
-          className={`flex flex-col items-center justify-center ${activeTab === 'users' ? 'text-primary font-bold' : 'text-slate-400'}`}
-        >
-          <Group size={18} />
-          <span className="text-[9px] mt-0.5">Nhân sự</span>
-        </button>
-      </nav>
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <form onSubmit={handleAddNewUser} className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-black text-primary">Thêm người dùng</h3>
+            <div className="mt-4 space-y-3">
+              <input required value={newUserName} onChange={(event) => setNewUserName(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary" placeholder="Họ và tên" />
+              <input required type="email" value={newUserEmail} onChange={(event) => setNewUserEmail(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary" placeholder="Email" />
+              <input value={newUserPhone} onChange={(event) => setNewUserPhone(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary" placeholder="Số điện thoại" />
+              <select value={newUserRole} onChange={(event) => setNewUserRole(event.target.value as typeof newUserRole)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary">
+                <option value="driver">Tài xế</option>
+                <option value="staff">Nhân viên</option>
+                <option value="manager">Quản lý</option>
+                <option value="admin">Quản trị viên</option>
+              </select>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button onClick={() => setShowAddUserModal(false)} className="rounded-xl border border-slate-200 py-3 text-xs font-black text-slate-500" type="button">Hủy</button>
+              <button className="rounded-xl bg-primary py-3 text-xs font-black text-white" type="submit">Thêm mới</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
+  );
+}
+
+function Page({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  return (
+    <div className="space-y-5">
+      <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-black text-primary">{title}</h2>
+        <p className="mt-1 text-xs font-medium text-slate-500">{subtitle}</p>
+      </header>
+      {children}
+    </div>
+  );
+}
+
+function RoleHelp({ role }: { role: Role }) {
+  const help: Record<Role, string> = {
+    guest: '',
+    driver: '',
+    staff: 'Nhân viên: xem tổng quan, xử lý sơ đồ bãi xe và tra cứu giao dịch.',
+    manager: 'Quản lý: thêm quyền quản lý người dùng và xem báo cáo doanh thu.',
+    admin: 'Admin: toàn quyền cấu hình hệ thống, người dùng, báo cáo và vận hành.',
+  };
+  return <p className="rounded-xl bg-white/10 p-3 text-[11px] font-semibold leading-5 text-white/70">{help[role]}</p>;
+}
+
+function KpiCard({ icon, label, value, hint, tone = 'blue' }: { icon: ReactNode; label: string; value: string; hint: string; tone?: 'blue' | 'emerald' | 'amber' | 'rose' }) {
+  const toneClass = {
+    blue: 'bg-blue-50 text-primary',
+    emerald: 'bg-emerald-50 text-emerald-700',
+    amber: 'bg-amber-50 text-amber-700',
+    rose: 'bg-rose-50 text-rose-700',
+  }[tone];
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneClass}`}>{icon}</div>
+      <p className="mt-4 text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 break-words text-xl font-black text-slate-800">{value}</p>
+      <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-slate-500">{hint}</p>
+    </div>
+  );
+}
+
+function PanelHeader({ title, action }: { title: string; action?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between border-b border-slate-100 p-4">
+      <h3 className="text-sm font-black text-primary">{title}</h3>
+      {action}
+    </div>
+  );
+}
+
+function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  return (
+    <div className="relative max-w-md">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+      <input value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-sm font-semibold outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10" placeholder={placeholder} />
+    </div>
+  );
+}
+
+function GateInfo({
+  label,
+  value,
+  strong,
+  status,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  status?: 'success' | 'warning';
+}) {
+  const statusClass =
+    status === 'success'
+      ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+      : status === 'warning'
+        ? 'border-amber-100 bg-amber-50 text-amber-700'
+        : 'border-slate-200 bg-slate-50 text-slate-800';
+
+  return (
+    <div className={`rounded-xl border p-4 ${statusClass}`}>
+      <p className="text-[10px] font-black uppercase tracking-wide opacity-70">{label}</p>
+      <p className={`${strong ? 'font-mono text-2xl' : 'text-base'} mt-1 font-black`}>{value}</p>
+    </div>
+  );
+}
+
+function UserTable({ users, canManage, onToggleStatus, onDelete }: { users: User[]; canManage: boolean; onToggleStatus: (id: string) => void; onDelete: (id: string) => void }) {
+  return (
+    <table className="w-full min-w-[760px] text-left text-xs">
+      <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wide text-slate-400">
+        <tr>
+          <th className="p-3">Người dùng</th>
+          <th className="p-3">Vai trò</th>
+          <th className="p-3">SĐT</th>
+          <th className="p-3">Biển số</th>
+          <th className="p-3">Số dư</th>
+          <th className="p-3">Trạng thái</th>
+          <th className="p-3 text-center">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {users.map((user) => (
+          <tr key={user.id} className="hover:bg-slate-50/60">
+            <td className="p-3">
+              <p className="font-black text-slate-800">{user.name}</p>
+              <p className="mt-0.5 text-[10px] font-semibold text-slate-400">{user.email}</p>
+            </td>
+            <td className="p-3 font-black text-secondary">{ROLE_LABEL[user.role]}</td>
+            <td className="p-3 font-mono font-bold text-slate-600">{user.phone}</td>
+            <td className="p-3 font-mono font-bold uppercase text-slate-600">{user.licensePlate}</td>
+            <td className="p-3 font-black text-slate-800">{user.balance.toLocaleString('vi-VN')} VNĐ</td>
+            <td className="p-3">
+              <button onClick={() => onToggleStatus(user.id)} disabled={!canManage} className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase disabled:cursor-not-allowed ${user.status === 'ACTIVE' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`} type="button">
+                {user.status === 'ACTIVE' ? 'Hoạt động' : 'Khóa'}
+              </button>
+            </td>
+            <td className="p-3 text-center">
+              <button onClick={() => onDelete(user.id)} disabled={!canManage} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" type="button">
+                <Trash2 size={14} />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TransactionTable({ transactions }: { transactions: Transaction[] }) {
+  return (
+    <table className="w-full min-w-[760px] text-left text-xs">
+      <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wide text-slate-400">
+        <tr>
+          <th className="p-3">Mã GD</th>
+          <th className="p-3">Biển số</th>
+          <th className="p-3">Slot</th>
+          <th className="p-3">Số tiền</th>
+          <th className="p-3">Phương thức</th>
+          <th className="p-3">Thời gian</th>
+          <th className="p-3">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {transactions.map((tx) => (
+          <tr key={tx.id} className="hover:bg-slate-50/60">
+            <td className="p-3 font-mono font-black text-primary">{tx.id}</td>
+            <td className="p-3 font-mono font-bold uppercase">{tx.licensePlate}</td>
+            <td className="p-3 font-black">{tx.slotId}</td>
+            <td className="p-3 font-black">{tx.amount.toLocaleString('vi-VN')} VNĐ</td>
+            <td className="p-3 font-semibold">{tx.method}</td>
+            <td className="p-3 font-semibold text-slate-500">{tx.timeStr}</td>
+            <td className="p-3">
+              <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase ${tx.status === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : tx.status === 'pending' ? 'border-amber-100 bg-amber-50 text-amber-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
+                {tx.status === 'success' ? 'Thành công' : tx.status === 'pending' ? 'Đang xử lý' : 'Thất bại'}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ChartCard({ title, total, data, max, tone = 'primary' }: { title: string; total: string; data: Array<{ label: string; value: number; display: string }>; max: number; tone?: 'primary' | 'secondary' }) {
+  const color = tone === 'primary' ? 'bg-primary' : 'bg-secondary';
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-black text-slate-800">{title}</h3>
+        <span className="text-sm font-black text-primary">{total}</span>
+      </div>
+      <div className="mt-6 flex h-64 items-end justify-between gap-3 border-b border-slate-200 px-2">
+        {data.map((item) => (
+          <div key={item.label} className="flex flex-1 flex-col items-center gap-2">
+            <span className="text-[10px] font-black text-slate-500">{item.display}</span>
+            <div className={`w-full max-w-10 rounded-t-lg ${color}`} style={{ height: `${Math.max(12, (item.value / max) * 205)}px` }} />
+            <span className="text-[10px] font-bold text-slate-400">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SettingsPanel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-sm font-black text-primary">{title}</h3>
+      <div className="mt-4 space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function SettingInput({ label, value, suffix, disabled }: { label: string; value: string; suffix?: string; disabled?: boolean }) {
+  return (
+    <label className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+      <span>{label}</span>
+      <div className="flex items-center gap-2">
+        <input defaultValue={value} disabled={disabled} className="w-36 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-right font-mono outline-none disabled:opacity-60" />
+        {suffix && <span className="w-8 text-slate-400">{suffix}</span>}
+      </div>
+    </label>
   );
 }

@@ -22,7 +22,13 @@ interface ParkingMapScreenProps {
   onLogout: () => void;
 }
 
-const floors = ['Tầng 1', 'Tầng 2', 'Tầng hầm'];
+const floors = ['Tầng 1', 'Tầng 2', 'Tầng 3'];
+const slotFilters = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'available', label: 'Chỗ trống' },
+  { id: 'reserved', label: 'Đã đặt' },
+  { id: 'occupied', label: 'Đang sử dụng' },
+] as const;
 
 const statusMeta = {
   available: {
@@ -52,10 +58,11 @@ export default function ParkingMapScreen({
 }: ParkingMapScreenProps) {
   const [selectedFloor, setSelectedFloor] = useState(floors[0]);
   const [activeSlot, setActiveSlot] = useState<ParkingSlot | null>(null);
+  const [slotFilter, setSlotFilter] = useState<(typeof slotFilters)[number]['id']>('all');
 
   const filteredSlots = useMemo(
-    () => slots.filter((slot) => slot.floor === selectedFloor),
-    [slots, selectedFloor]
+    () => slots.filter((slot) => slot.floor === selectedFloor && (slotFilter === 'all' || slot.status === slotFilter)),
+    [slots, selectedFloor, slotFilter]
   );
 
   const stats = useMemo(
@@ -108,6 +115,7 @@ export default function ParkingMapScreen({
       <main className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-4 lg:grid-cols-[1fr_340px]">
         <section className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <ProgressSteps active={1} />
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Xin chào</p>
@@ -180,6 +188,32 @@ export default function ParkingMapScreen({
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-slate-800">Bộ lọc nhanh</h3>
+              <span className="text-[11px] font-bold text-slate-400">{filteredSlots.length} slot</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {slotFilters.map((filter) => (
+                <button
+                  key={filter.id}
+                  onClick={() => {
+                    setSlotFilter(filter.id);
+                    setActiveSlot(null);
+                  }}
+                  className={`rounded-xl border px-3 py-2.5 text-xs font-black transition ${
+                    slotFilter === filter.id
+                      ? 'border-secondary bg-blue-50 text-secondary'
+                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  }`}
+                  type="button"
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-800">Sơ đồ {selectedFloor}</h3>
                 <p className="text-[11px] font-medium text-slate-500">Chạm vào ô để xem chi tiết hoặc đặt trước.</p>
@@ -195,6 +229,11 @@ export default function ParkingMapScreen({
                 <span>Lối ra</span>
               </div>
               <SlotGrid slots={filteredSlots.slice(4, 8)} activeSlot={activeSlot} setActiveSlot={setActiveSlot} />
+              {filteredSlots.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs font-semibold text-slate-500">
+                  Không có slot phù hợp với bộ lọc hiện tại.
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -218,6 +257,24 @@ export default function ParkingMapScreen({
           <span className="mt-0.5 text-[10px] font-bold">Tài khoản</span>
         </button>
       </nav>
+    </div>
+  );
+}
+
+function ProgressSteps({ active }: { active: number }) {
+  const steps = ['Chọn chỗ', 'Biển số', 'Xác nhận', 'Thanh toán', 'Hoàn tất'];
+  return (
+    <div className="mb-4 grid grid-cols-5 gap-1 rounded-xl bg-slate-50 p-1">
+      {steps.map((step, index) => (
+        <div
+          key={step}
+          className={`rounded-lg px-2 py-2 text-center text-[9px] font-black uppercase ${
+            index + 1 <= active ? 'bg-primary text-white' : 'text-slate-400'
+          }`}
+        >
+          {step}
+        </div>
+      ))}
     </div>
   );
 }
