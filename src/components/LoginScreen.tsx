@@ -47,6 +47,7 @@ export default function LoginScreen({
       // Find user mapping
       let matchedRole: Role = 'guest';
       let matchedUser: User | undefined;
+      const effectiveRole = selectedDemoRole || 'driver';
 
       if (selectedDemoRole === 'guest' || (!identity && !password)) {
         matchedRole = 'guest';
@@ -62,19 +63,16 @@ export default function LoginScreen({
           balance: 0,
         };
       } else {
-        // Find corresponding user
-        if (identity.includes('admin') || selectedDemoRole === 'admin') {
-          matchedRole = 'admin';
-          matchedUser = usersList.find((u) => u.role === 'admin');
-        } else if (identity.includes('manager') || selectedDemoRole === 'manager') {
-          matchedRole = 'manager';
-          matchedUser = usersList.find((u) => u.role === 'manager');
-        } else if (identity.includes('staff') || selectedDemoRole === 'staff') {
-          matchedRole = 'staff';
-          matchedUser = usersList.find((u) => u.role === 'staff');
-        } else {
-          matchedRole = 'driver';
-          matchedUser = usersList.find((u) => u.role === 'driver');
+        matchedRole = effectiveRole as Role;
+        matchedUser = usersList.find((u) => u.role === matchedRole);
+
+        if (!matchedUser) {
+          if (identity.includes('admin')) matchedRole = 'admin';
+          else if (identity.includes('manager')) matchedRole = 'manager';
+          else if (identity.includes('staff')) matchedRole = 'staff';
+          else if (identity.includes('driver')) matchedRole = 'driver';
+
+          matchedUser = usersList.find((u) => u.role === matchedRole);
         }
       }
 

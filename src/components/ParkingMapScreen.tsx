@@ -286,7 +286,7 @@ export default function ParkingMapScreen({
           className="flex flex-col items-center justify-center text-slate-400 hover:text-primary transition-all px-4"
           type="button"
         >
-          <User size={18} />
+          <UserIcon size={18} />
           <span className="text-[10px] font-bold mt-0.5">Cá nhân</span>
         </button>
       </nav>
