@@ -89,7 +89,7 @@ export default function AdminDashboard({
     );
   };
 
-  const handleAddNewUser = (e: React.FormEvent) => {
+  const handleAddNewUser = (e: FormEvent) => {
     e.preventDefault();
     if (!newUserName || !newUserEmail) return;
 

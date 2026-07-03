@@ -1,6 +1,20 @@
-import React, { useState } from 'react';
+import { FormEvent, useState } from 'react';
+import type { ReactNode } from 'react';
 import { User } from '../types';
-import { Car, User as UserIcon, Phone, Mail, FileText, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, HelpCircle, Globe, CheckCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Car,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  FileText,
+  Lock,
+  Mail,
+  Phone,
+  ShieldCheck,
+  User as UserIcon,
+} from 'lucide-react';
 
 interface RegisterScreenProps {
   onRegisterSuccess: (newUser: User) => void;
@@ -17,261 +31,217 @@ export default function RegisterScreen({
   const [licensePlate, setLicensePlate] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  
   const [loading, setLoading] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    setMessage('');
+
     if (!termsAccepted) {
-      alert('Vui lòng chấp nhận Điều khoản và Chính sách bảo mật để tiếp tục.');
+      setMessage('Vui lòng đồng ý điều khoản dịch vụ để tiếp tục.');
       return;
     }
+
+    if (password.length < 6) {
+      setMessage('Mật khẩu cần có ít nhất 6 ký tự.');
+      return;
+    }
+
     if (password !== confirmPassword) {
-      alert('Mật khẩu và Xác nhận mật khẩu không khớp.');
+      setMessage('Mật khẩu xác nhận chưa khớp.');
       return;
     }
 
     setLoading(true);
-
-    setTimeout(() => {
+    window.setTimeout(() => {
       const newUser: User = {
         id: `U${Math.floor(Math.random() * 900) + 100}`,
-        name: fullName || 'Tài xế mới',
-        email: email || 'newdriver@pbms.vn',
-        phone: phone || '0901234567',
-        licensePlate: licensePlate.toUpperCase() || '59A-123.45',
+        name: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        licensePlate: licensePlate.trim().toUpperCase(),
         role: 'driver',
-        joinedDate: '02/07/2026',
+        joinedDate: new Date().toLocaleDateString('vi-VN'),
         status: 'ACTIVE',
-        balance: 50000, // free 50,000 credit on signup
+        balance: 50000,
       };
 
       setLoading(false);
-      setShowToast(true);
-
-      setTimeout(() => {
-        setShowToast(false);
-        onRegisterSuccess(newUser);
-      }, 2500);
-    }, 1500);
+      setMessage('Đăng ký thành công. Đang chuyển vào hệ thống...');
+      window.setTimeout(() => onRegisterSuccess(newUser), 800);
+    }, 800);
   };
 
   return (
-    <div className="bg-background font-sans text-on-background min-h-screen flex flex-col items-center justify-center overflow-x-hidden relative">
-      {/* Background Atmospheric Effect */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-surface"></div>
-      </div>
-
-      {/* Main Content Container */}
-      <main className="relative z-10 w-full max-w-md px-4 py-8 flex flex-col min-h-screen">
-        {/* Header Section */}
-        <header className="mt-4 mb-8 text-center animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-3 shadow-lg shadow-primary/25">
-            <Car className="text-white w-8 h-8" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-primary">Chào mừng tài xế mới</h1>
-          <p className="text-on-surface-variant text-xs mt-1.5 font-medium">Hệ thống PBMS - Quản lý gửi xe thông minh</p>
-        </header>
-
-        {/* Registration Form Card */}
-        <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl p-5 shadow-xl shadow-slate-900/5">
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            {/* Full Name */}
-            <div className="relative border-b-2 border-slate-200 focus-within:border-secondary transition-all">
-              <span className="material-symbols-outlined absolute left-2 top-3 text-slate-400">
-                <UserIcon size={18} />
-              </span>
-              <input
-                className="w-full pl-9 pr-3 py-2.5 bg-transparent border-0 focus:ring-0 text-sm placeholder:text-slate-400 font-sans focus:outline-none"
-                id="full-name"
-                placeholder="Họ và Tên"
-                required
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-
-            {/* Phone Number */}
-            <div className="relative border-b-2 border-slate-200 focus-within:border-secondary transition-all">
-              <span className="material-symbols-outlined absolute left-2 top-3 text-slate-400">
-                <Phone size={18} />
-              </span>
-              <input
-                className="w-full pl-9 pr-3 py-2.5 bg-transparent border-0 focus:ring-0 text-sm placeholder:text-slate-400 font-sans focus:outline-none"
-                id="phone"
-                placeholder="Số điện thoại"
-                required
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-
-            {/* Email */}
-            <div className="relative border-b-2 border-slate-200 focus-within:border-secondary transition-all">
-              <span className="material-symbols-outlined absolute left-2 top-3 text-slate-400">
-                <Mail size={18} />
-              </span>
-              <input
-                className="w-full pl-9 pr-3 py-2.5 bg-transparent border-0 focus:ring-0 text-sm placeholder:text-slate-400 font-sans focus:outline-none"
-                id="email"
-                placeholder="Email"
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            {/* License Plate */}
-            <div className="relative border-b-2 border-slate-200 focus-within:border-secondary transition-all">
-              <span className="material-symbols-outlined absolute left-2 top-3 text-slate-400">
-                <FileText size={18} />
-              </span>
-              <input
-                className="w-full pl-9 pr-3 py-2.5 bg-transparent border-0 focus:ring-0 text-sm placeholder:text-slate-400 font-mono focus:outline-none uppercase"
-                id="license-plate"
-                placeholder="Biển số xe (VD: 59A-123.45)"
-                required
-                type="text"
-                value={licensePlate}
-                onChange={(e) => setLicensePlate(e.target.value)}
-              />
-            </div>
-
-            {/* Password */}
-            <div className="relative border-b-2 border-slate-200 focus-within:border-secondary transition-all">
-              <span className="material-symbols-outlined absolute left-2 top-3 text-slate-400">
-                <Lock size={18} />
-              </span>
-              <input
-                className="w-full pl-9 pr-10 py-2.5 bg-transparent border-0 focus:ring-0 text-sm placeholder:text-slate-400 font-sans focus:outline-none"
-                id="password"
-                placeholder="Mật khẩu"
-                required
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                className="absolute right-2 top-3 text-slate-400 hover:text-primary transition-colors"
-                onClick={() => setShowPassword(!showPassword)}
-                type="button"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            {/* Confirm Password */}
-            <div className="relative border-b-2 border-slate-200 focus-within:border-secondary transition-all">
-              <span className="material-symbols-outlined absolute left-2 top-3 text-slate-400">
-                <ShieldCheck size={18} />
-              </span>
-              <input
-                className="w-full pl-9 pr-10 py-2.5 bg-transparent border-0 focus:ring-0 text-sm placeholder:text-slate-400 font-sans focus:outline-none"
-                id="confirm-password"
-                placeholder="Xác nhận mật khẩu"
-                required
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-              <button
-                className="absolute right-2 top-3 text-slate-400 hover:text-primary transition-colors"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                type="button"
-              >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            {/* Terms */}
-            <div className="flex items-start gap-2.5 mt-2">
-              <input
-                className="mt-1 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer"
-                id="terms"
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={() => setTermsAccepted(!termsAccepted)}
-              />
-              <label className="text-xs text-on-surface-variant leading-relaxed cursor-pointer" htmlFor="terms">
-                Tôi đồng ý với{' '}
-                <a className="text-secondary font-bold hover:underline" href="#">
-                  Điều khoản dịch vụ
-                </a>{' '}
-                và{' '}
-                <a className="text-secondary font-bold hover:underline" href="#">
-                  Chính sách bảo mật
-                </a>
-                .
-              </label>
-            </div>
-
-            {/* Register Button */}
-            <button
-              className="mt-3 w-full bg-primary hover:bg-primary/95 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span>Đang xử lý...</span>
-                </>
-              ) : (
-                <>
-                  <span>Đăng ký ngay</span>
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Footer Actions */}
-        <footer className="mt-6 text-center pb-8 flex-grow flex flex-col justify-end">
-          <p className="text-sm text-on-surface-variant font-medium">
-            Đã có tài khoản?{' '}
-            <button onClick={onNavigateToLogin} className="text-primary font-bold hover:underline ml-1">
-              Đăng nhập
-            </button>
-          </p>
-
-          <div className="mt-8 flex justify-center items-center gap-4 opacity-70">
-            <div className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer text-slate-600 shadow-sm">
-              <HelpCircle size={16} />
-            </div>
-            <div className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer text-slate-600 shadow-sm">
-              <Globe size={16} />
-            </div>
-          </div>
-        </footer>
-      </main>
-
-      {/* Success Toast */}
-      {showToast && (
-        <div className="fixed top-6 right-6 z-50 transform transition-transform duration-500 ease-out" id="toast">
-          <div className="bg-slate-900 border-l-4 border-emerald-500 p-4 rounded-xl shadow-2xl flex items-center gap-3 text-white">
-            <div className="bg-emerald-500/10 p-1.5 rounded-full text-emerald-400">
-              <CheckCircle size={18} />
+    <div className="min-h-screen bg-background text-on-background">
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-6">
+        <header className="mb-5">
+          <button onClick={onNavigateToLogin} className="mb-5 flex items-center gap-2 text-xs font-bold text-slate-500" type="button">
+            <ArrowLeft size={16} />
+            Quay lại đăng nhập
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+              <Car size={28} />
             </div>
             <div>
-              <p className="text-xs font-bold text-emerald-400">Đăng ký thành công!</p>
-              <p className="text-[10px] text-slate-300">Chào mừng bạn đến với hệ thống PBMS.</p>
+              <h1 className="text-xl font-black text-primary">Tạo tài khoản tài xế</h1>
+              <p className="mt-1 text-xs font-medium text-slate-500">Nhận 50.000 VNĐ vào ví demo sau khi đăng ký.</p>
             </div>
           </div>
-        </div>
-      )}
+        </header>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <Field icon={<UserIcon size={18} />} label="Họ và tên" value={fullName} onChange={setFullName} placeholder="Nguyễn Văn A" required />
+            <Field icon={<Phone size={18} />} label="Số điện thoại" value={phone} onChange={setPhone} placeholder="0901234567" type="tel" required />
+            <Field icon={<Mail size={18} />} label="Email" value={email} onChange={setEmail} placeholder="you@example.com" type="email" required />
+            <Field icon={<FileText size={18} />} label="Biển số xe" value={licensePlate} onChange={setLicensePlate} placeholder="59A-123.45" required mono />
+
+            <PasswordField
+              label="Mật khẩu"
+              value={password}
+              onChange={setPassword}
+              show={showPassword}
+              setShow={setShowPassword}
+            />
+            <PasswordField
+              label="Xác nhận mật khẩu"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              show={showConfirmPassword}
+              setShow={setShowConfirmPassword}
+              icon={<ShieldCheck size={18} />}
+            />
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3 text-xs font-medium leading-5 text-slate-600">
+              <input
+                checked={termsAccepted}
+                onChange={() => setTermsAccepted((value) => !value)}
+                className="mt-1"
+                type="checkbox"
+              />
+              <span>
+                Tôi đồng ý với điều khoản dịch vụ, chính sách bảo mật và quy định sử dụng bãi xe của PBMS.
+              </span>
+            </label>
+
+            {message && (
+              <div className={`rounded-xl p-3 text-xs font-bold ${message.includes('thành công') ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                {message}
+              </div>
+            )}
+
+            <button
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white shadow-md transition hover:bg-primary/95 disabled:opacity-75"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? 'Đang tạo tài khoản...' : <><span>Đăng ký ngay</span><ArrowRight size={17} /></>}
+            </button>
+          </form>
+        </section>
+
+        <footer className="mt-5 text-center text-sm font-medium text-slate-500">
+          Đã có tài khoản?
+          <button onClick={onNavigateToLogin} className="ml-1 font-black text-primary hover:underline" type="button">
+            Đăng nhập
+          </button>
+        </footer>
+
+        {message.includes('thành công') && (
+          <div className="fixed right-4 top-4 z-50 rounded-xl border border-emerald-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="text-emerald-600" size={20} />
+              <div>
+                <p className="text-sm font-black text-slate-800">Đăng ký thành công</p>
+                <p className="text-xs font-medium text-slate-500">Ví demo đã được cộng 50.000 VNĐ.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
+  );
+}
+
+function Field({
+  icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  required,
+  mono,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+  required?: boolean;
+  mono?: boolean;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-bold text-slate-500">{label}</span>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>
+        <input
+          className={`h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/15 ${mono ? 'font-mono uppercase' : ''}`}
+          placeholder={placeholder}
+          required={required}
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </div>
+    </label>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  show,
+  setShow,
+  icon = <Lock size={18} />,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  show: boolean;
+  setShow: (value: boolean) => void;
+  icon?: ReactNode;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-bold text-slate-500">{label}</span>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>
+        <input
+          className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-11 text-sm font-semibold outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/15"
+          placeholder="Tối thiểu 6 ký tự"
+          required
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary"
+          onClick={() => setShow(!show)}
+          type="button"
+        >
+          {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </label>
   );
 }

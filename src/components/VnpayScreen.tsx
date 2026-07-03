@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Reservation } from '../types';
-import { ArrowLeft, Landmark, CheckCircle, Shield, QrCode, Smartphone, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, Landmark, QrCode, Shield, Smartphone, XCircle } from 'lucide-react';
 import { VNPAY_QR_IMAGE } from '../mockData';
 
 interface VnpayScreenProps {
@@ -16,33 +17,24 @@ export default function VnpayScreen({
   onCancel,
   onPaymentSuccess,
 }: VnpayScreenProps) {
-  // Countdown Timer (299 seconds = 4:59)
   const [timeLeft, setTimeLeft] = useState(299);
   const [successTriggered, setSuccessTriggered] = useState(false);
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timeLeft]);
+    if (timeLeft <= 0 || successTriggered) return;
+    const interval = window.setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => window.clearInterval(interval);
+  }, [timeLeft, successTriggered]);
 
-  // Simulate payment completion automatically after 8 seconds
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      triggerSuccess();
-    }, 8000);
-    return () => clearTimeout(timeout);
+    const timeout = window.setTimeout(() => triggerSuccess(), 8000);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const triggerSuccess = () => {
     if (successTriggered) return;
     setSuccessTriggered(true);
-    // Wait for the success toast animation to play before redirecting
-    setTimeout(() => {
-      onPaymentSuccess();
-    }, 3000);
+    window.setTimeout(onPaymentSuccess, 1200);
   };
 
   const formatTime = (seconds: number) => {
@@ -52,138 +44,108 @@ export default function VnpayScreen({
   };
 
   return (
-    <div className="bg-background text-on-background min-h-screen font-sans overflow-x-hidden relative flex flex-col pb-16">
-      {/* Transactional Shell Header */}
-      <header className="bg-primary text-white h-16 flex items-center px-4 fixed top-0 w-full z-50 shadow-md">
-        <button className="mr-4 p-2 hover:bg-white/10 rounded-full active:scale-95 transition-all" onClick={onBack}>
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="font-bold text-sm sm:text-base">Thanh toán VNPAY</h1>
+    <div className="min-h-screen bg-background pb-12 text-on-background">
+      <header className="sticky top-0 z-40 bg-primary text-white shadow-md">
+        <div className="mx-auto flex h-16 max-w-md items-center px-4">
+          <button className="mr-3 rounded-xl p-2 transition hover:bg-white/10" onClick={onBack} type="button">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-sm font-extrabold">Thanh toán VNPAY</h1>
+            <p className="text-[11px] font-medium text-white/70">Giao dịch giữ chỗ {reservation.id}</p>
+          </div>
+        </div>
       </header>
 
-      {/* Main Container */}
-      <main className="pt-20 pb-24 px-4 flex-grow flex flex-col items-center max-w-md mx-auto w-full">
-        
-        {/* Merchant Identity Card */}
-        <div className="w-full bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mb-5 flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center mb-3">
-            <span className="font-extrabold text-base">P</span>
+      <main className="mx-auto max-w-md space-y-4 px-4 py-4">
+        <section className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white">
+            <Landmark size={22} />
           </div>
-          <h2 className="text-sm font-bold text-slate-800 mb-1">PBMS - Hệ Thống Gửi Xe</h2>
-          <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-            <CheckCircle className="text-secondary w-3.5 h-3.5" />
-            <span>Đơn vị chấp nhận thanh toán</span>
+          <h2 className="mt-3 text-sm font-black text-slate-800">PBMS Smart Parking</h2>
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase text-slate-500">
+            <Shield size={13} className="text-emerald-600" />
+            Đơn vị chấp nhận thanh toán
+          </p>
+          <div className="mt-5 border-t border-dashed border-slate-200 pt-5">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Số tiền</p>
+            <p className="mt-1 text-3xl font-black text-primary">{reservation.totalFee.toLocaleString('vi-VN')} VNĐ</p>
           </div>
-          <div className="mt-5 pt-5 border-t border-dashed border-slate-200 w-full">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Số tiền thanh toán</p>
-            <p className="font-mono text-2xl font-black text-primary">
-              {reservation.totalFee.toLocaleString('vi-VN')} VNĐ
-            </p>
-          </div>
-        </div>
+        </section>
 
-        {/* QR Code Interactive Section */}
-        <div className="relative w-full bg-white rounded-2xl p-6 shadow-lg border border-primary/10 flex flex-col items-center">
-          
-          {/* VNPAY Branding */}
-          <div className="flex items-center gap-1.5 mb-5 select-none">
-            <div className="bg-rose-600 text-white font-black px-2 py-0.5 rounded italic text-xs tracking-tighter shadow-sm">VN</div>
-            <div className="bg-blue-600 text-white font-black px-2 py-0.5 rounded italic text-xs tracking-tighter shadow-sm">PAY</div>
-            <span className="text-xs font-black text-slate-400 ml-1">QR</span>
+        <section className="rounded-xl border border-primary/10 bg-white p-5 text-center shadow-sm">
+          <div className="mb-4 flex items-center justify-center gap-1.5">
+            <span className="rounded bg-rose-600 px-2 py-0.5 text-xs font-black italic text-white">VN</span>
+            <span className="rounded bg-blue-600 px-2 py-0.5 text-xs font-black italic text-white">PAY</span>
+            <span className="text-xs font-black text-slate-400">QR</span>
           </div>
 
-          {/* QR Container with Scanner Animation */}
-          <div className="relative p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-            <div className="relative w-52 h-52">
-              <img
-                className="w-full h-full object-contain"
-                src={VNPAY_QR_IMAGE}
-                alt="VNPAY QR CODE"
-                referrerPolicy="no-referrer"
-              />
-              {/* Scanner effect line */}
-              <div className="qr-scanner-line absolute left-0 w-full h-0.5 bg-secondary shadow-[0_0_8px_rgba(0,101,145,0.8)]"></div>
+          <div className="mx-auto w-fit rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="relative h-56 w-56 overflow-hidden rounded-xl bg-white">
+              <img className="h-full w-full object-contain p-2" src={VNPAY_QR_IMAGE} alt="Mã QR VNPAY" />
+              <div className="qr-scanner-line absolute left-0 h-0.5 w-full bg-secondary shadow-[0_0_8px_rgba(0,101,145,0.8)]" />
             </div>
           </div>
 
-          <div className="mt-4 text-center max-w-[240px]">
-            <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-              Quét mã QR bằng ứng dụng ngân hàng hoặc ví <span className="font-extrabold text-primary">VNPAY</span> để thanh toán
-            </p>
-          </div>
+          <p className="mx-auto mt-4 max-w-xs text-xs font-semibold leading-5 text-slate-600">
+            Mở ứng dụng ngân hàng hoặc ví VNPAY, chọn quét mã QR và xác nhận số tiền thanh toán.
+          </p>
 
-          {/* Timer Display */}
-          <div className="mt-6 flex items-center gap-2 bg-rose-50 text-rose-700 px-4 py-2 rounded-full border border-rose-200/50">
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-rose-700">
             <Clock size={16} />
-            <span className="font-mono text-xs font-black" id="timer">
-              Giao dịch hết hạn trong {formatTime(timeLeft)}
-            </span>
+            <span className="font-mono text-xs font-black">Hết hạn sau {formatTime(timeLeft)}</span>
           </div>
-        </div>
+        </section>
 
-        {/* Help Info List */}
-        <div className="w-full mt-6 space-y-3">
-          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
-            <div className="bg-blue-50 p-2 rounded-lg text-primary">
-              <Smartphone size={16} />
-            </div>
-            <div>
-              <p className="font-bold text-xs text-slate-700">Bước 1</p>
-              <p className="text-[11px] text-slate-500 font-medium">Mở ứng dụng ngân hàng hoặc ví VNPAY trên điện thoại</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
-            <div className="bg-blue-50 p-2 rounded-lg text-primary">
-              <QrCode size={16} />
-            </div>
-            <div>
-              <p className="font-bold text-xs text-slate-700">Bước 2</p>
-              <p className="text-[11px] text-slate-500 font-medium">Chọn tính năng "Quét mã" và quét mã QR ở trên</p>
-            </div>
-          </div>
-        </div>
+        <section className="grid gap-3">
+          <GuideStep icon={<Smartphone size={16} />} title="Bước 1" text="Mở ứng dụng ngân hàng hoặc ví điện tử có hỗ trợ VNPAY." />
+          <GuideStep icon={<QrCode size={16} />} title="Bước 2" text="Quét mã, kiểm tra thông tin và xác nhận thanh toán." />
+        </section>
 
-        {/* Manual simulator button to bypass the 8s automatic redirect immediately if needed */}
         <button
           onClick={triggerSuccess}
-          className="mt-6 text-[10px] font-bold text-slate-300 hover:text-slate-400 select-none uppercase tracking-widest hover:underline"
+          className="w-full rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-xs font-black uppercase text-emerald-700 transition hover:bg-emerald-100"
+          type="button"
         >
-          [ Mô phỏng đã quét thanh toán thành công ]
+          Mô phỏng thanh toán thành công
         </button>
 
-        {/* Action Area */}
-        <div className="w-full mt-6">
-          <button
-            onClick={onCancel}
-            className="w-full py-3 rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm shadow-rose-100"
-          >
-            <XCircle size={16} />
-            <span>Hủy giao dịch</span>
-          </button>
-          <p className="text-center mt-3.5 text-[10px] font-bold text-slate-400 tracking-wider">
-            Hỗ trợ: 1900 5555 77
-          </p>
-        </div>
+        <button
+          onClick={onCancel}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-3 text-sm font-extrabold text-rose-600 shadow-sm transition hover:bg-rose-50"
+          type="button"
+        >
+          <XCircle size={17} />
+          Hủy giao dịch
+        </button>
       </main>
 
-      {/* Success Toast (Renders when success is triggered) */}
       <div
-        className={`fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white border-l-4 border-emerald-500 p-4 shadow-2xl rounded-r-xl transition-all duration-500 z-[100] ${
-          successTriggered ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'
+        className={`fixed bottom-6 left-1/2 z-50 w-[92%] max-w-sm -translate-x-1/2 rounded-xl border border-emerald-200 bg-white p-4 shadow-2xl transition-all ${
+          successTriggered ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'
         }`}
-        id="successToast"
       >
         <div className="flex items-center gap-3">
-          <div className="bg-emerald-500 text-white rounded-full p-1 shadow-md shadow-emerald-500/20">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+          <div className="rounded-full bg-emerald-500 p-1.5 text-white">
+            <CheckCircle size={18} />
           </div>
           <div>
-            <p className="font-bold text-sm text-slate-800">Thanh toán thành công</p>
-            <p className="text-xs text-slate-500 font-medium">Hệ thống đang chuyển hướng vé...</p>
+            <p className="text-sm font-black text-slate-800">Thanh toán thành công</p>
+            <p className="text-xs font-medium text-slate-500">Đang tạo vé điện tử cho bạn...</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GuideStep({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-primary">{icon}</div>
+      <div>
+        <p className="text-xs font-black text-slate-800">{title}</p>
+        <p className="mt-0.5 text-[11px] font-medium leading-5 text-slate-500">{text}</p>
       </div>
     </div>
   );

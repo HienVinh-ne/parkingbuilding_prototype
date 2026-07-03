@@ -1,5 +1,5 @@
 import { Reservation } from '../types';
-import { Check, Map, Home, ShieldAlert, History, User, Car } from 'lucide-react';
+import { CalendarClock, Check, History, Home, Map, QrCode, ShieldAlert, User, Car } from 'lucide-react';
 import { TICKET_QR_IMAGE } from '../mockData';
 
 interface SuccessTicketScreenProps {
@@ -14,125 +14,119 @@ export default function SuccessTicketScreen({
   onNavigateToHistory,
 }: SuccessTicketScreenProps) {
   return (
-    <div className="bg-background text-on-background font-sans antialiased min-h-screen flex flex-col pb-24">
-      <main className="flex-grow flex flex-col items-center px-4 pt-6 pb-8 max-w-sm mx-auto w-full">
-        
-        {/* Animated Success Head */}
-        <div className="animate-success flex flex-col items-center mb-6">
-          <div className="w-16 h-16 bg-blue-100 text-primary rounded-full flex items-center justify-center shadow-lg shadow-blue-200 mb-3">
-            <Check size={36} className="stroke-[3]" />
+    <div className="min-h-screen bg-background pb-28 text-on-background">
+      <main className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-6">
+        <div className="animate-success mb-5 flex flex-col items-center text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-lg shadow-emerald-100">
+            <Check size={34} strokeWidth={3} />
           </div>
-          <h1 className="text-lg font-bold text-primary text-center">Thanh toán thành công!</h1>
-          <p className="text-xs text-slate-500 text-center mt-1 font-medium">Vui lòng xuất trình vé này tại cổng vào bãi xe.</p>
+          <h1 className="mt-3 text-xl font-black text-primary">Đặt chỗ thành công</h1>
+          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+            Xuất trình vé này tại cổng vào bãi xe để được xác nhận nhanh.
+          </p>
         </div>
 
-        {/* Ticket Shape Card */}
-        <div className="ticket-shape w-full shadow-xl overflow-hidden border border-slate-200 bg-white">
-          <div className="p-5 pb-10 flex flex-col">
-            <div className="w-full flex justify-between items-start mb-5">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">MÃ VÉ</span>
-                <span className="font-mono text-sm font-extrabold text-primary">{reservation.id}</span>
+        <section className="ticket-shape w-full overflow-hidden border border-slate-200 bg-white shadow-xl">
+          <div className="p-5 pb-10">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mã vé</p>
+                <p className="mt-1 font-mono text-sm font-black text-primary">{reservation.id}</p>
               </div>
-              <img
-                className="w-14 h-14 border p-1 rounded-lg bg-white shadow-sm"
-                src={TICKET_QR_IMAGE}
-                alt="Ticket QR"
-                referrerPolicy="no-referrer"
-              />
+              <img className="h-16 w-16 rounded-lg border bg-white p-1 shadow-sm" src={TICKET_QR_IMAGE} alt="Mã QR vé" />
             </div>
 
-            <div className="w-full grid grid-cols-2 gap-y-5 gap-x-3 text-xs">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">VỊ TRÍ ĐỖ</span>
-                <span className="text-sm font-extrabold text-slate-800">Slot {reservation.slotId}</span>
-                <span className="text-[10px] text-slate-400 font-semibold block">{reservation.floor}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">BIỂN SỐ XE</span>
-                <span className="font-mono text-sm font-extrabold text-slate-800 uppercase">{reservation.licensePlate}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">HIỆU LỰC TỪ</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-4 h-4 bg-blue-50 rounded-full flex items-center justify-center text-primary">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="font-bold text-slate-700">{reservation.startTime}</span>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <TicketInfo label="Vị trí đỗ" value={`Slot ${reservation.slotId}`} subValue={reservation.floor} />
+              <TicketInfo label="Biển số" value={reservation.licensePlate} mono />
+              <TicketInfo label="Loại xe" value={reservation.vehicleType === 'oto' ? 'Ô tô' : 'Xe máy'} />
+              <TicketInfo label="Tổng phí" value={`${reservation.totalFee.toLocaleString('vi-VN')} VNĐ`} />
+              <div className="col-span-2 rounded-xl bg-blue-50 p-3 text-primary">
+                <div className="flex items-center gap-2">
+                  <CalendarClock size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-wide">Hiệu lực</span>
                 </div>
+                <p className="mt-2 text-sm font-black">{reservation.startTime}</p>
+                <p className="mt-1 text-xs font-semibold text-primary/70">Kết thúc dự kiến: {reservation.endTime}</p>
               </div>
             </div>
           </div>
 
-          {/* Dotted cutting tear-off line */}
-          <div className="dash-line"></div>
+          <div className="dash-line" />
 
-          {/* Bottom Barcode section */}
-          <div className="p-5 pt-8 flex flex-col items-center bg-slate-50 border-t border-slate-100">
-            <div className="w-full bg-white p-3 border border-dashed border-slate-200 rounded-lg flex flex-col items-center shadow-sm">
-              
-              {/* CSS Barcode simulation */}
-              <div className="w-full h-10 flex items-center justify-center opacity-80 gap-[2px]" style={{ width: '80%' }}>
-                {Array.from({ length: 26 }).map((_, i) => {
-                  const width = i % 3 === 0 ? 'w-1.5' : i % 5 === 0 ? 'w-0.5' : 'w-1';
-                  return <div key={i} className={`h-full bg-slate-900 ${width}`} />;
+          <div className="border-t border-slate-100 bg-slate-50 p-5 pt-8">
+            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-3 text-center">
+              <QrCode className="mx-auto text-primary" size={28} />
+              <div className="mt-3 flex h-10 items-center justify-center gap-[2px] opacity-80">
+                {Array.from({ length: 28 }).map((_, index) => {
+                  const width = index % 4 === 0 ? 'w-1.5' : index % 3 === 0 ? 'w-0.5' : 'w-1';
+                  return <div key={index} className={`h-full bg-slate-900 ${width}`} />;
                 })}
               </div>
-
-              <span className="mt-2 font-mono text-[10px] font-bold text-slate-500 tracking-wider">
-                {reservation.id}
-              </span>
+              <p className="mt-2 font-mono text-[10px] font-bold tracking-wider text-slate-500">{reservation.id}</p>
             </div>
-            
-            <p className="text-[9px] font-semibold text-slate-400 mt-4 text-center tracking-wide uppercase flex items-center gap-1.5">
+
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-slate-400">
               <ShieldAlert size={10} className="text-secondary" />
-              Hệ thống PBMS cam kết bảo mật thông tin khách hàng.
+              PBMS bảo mật thông tin vé và phương tiện.
             </p>
           </div>
-        </div>
+        </section>
 
-        {/* Primary Action Buttons below card */}
-        <div className="w-full mt-6 space-y-3">
+        <div className="mt-5 grid w-full gap-3">
           <button
-            onClick={() => alert('Đang mở sơ đồ chỉ đường GPS...')}
-            className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-98 transition-all text-xs uppercase"
+            onClick={() => alert('Đang mở sơ đồ chỉ đường trong bãi xe...')}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-black uppercase text-white shadow-md transition hover:bg-primary/95"
+            type="button"
           >
             <Map size={16} />
-            <span>Xem bản đồ bãi xe</span>
+            Xem bản đồ bãi xe
           </button>
-          
           <button
             onClick={onNavigateHome}
-            className="w-full bg-white border border-slate-200 text-primary hover:bg-slate-50 font-bold py-3 rounded-xl active:scale-98 transition-all flex items-center justify-center gap-2 text-xs uppercase shadow-sm"
+            className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-black uppercase text-primary shadow-sm transition hover:bg-slate-50"
+            type="button"
           >
             <Home size={16} />
-            <span>Về trang chủ</span>
+            Về trang chủ
           </button>
         </div>
       </main>
 
-      {/* Navigation bar at bottom */}
-      <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-2 py-3 pb-safe border-t border-slate-200 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:hidden">
-        <button onClick={onNavigateHome} className="flex flex-col items-center justify-center text-slate-400 px-4 py-1" type="button">
+      <nav className="fixed bottom-0 left-0 z-40 flex w-full justify-around border-t border-slate-200 bg-white px-2 py-3 pb-safe shadow-[0_-4px_10px_rgba(15,23,42,0.06)] md:hidden">
+        <button onClick={onNavigateHome} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <Car size={18} />
-          <span className="text-[10px] font-bold mt-0.5">Trang chủ</span>
+          <span className="mt-0.5 text-[10px] font-bold">Đặt chỗ</span>
         </button>
-        <button onClick={onNavigateHome} className="flex flex-col items-center justify-center text-slate-400 px-4 py-1" type="button">
-          <Car size={18} />
-          <span className="text-[10px] font-bold mt-0.5">Đặt chỗ</span>
-        </button>
-        {/* Active view: History is selected in screenshot 3 */}
-        <button onClick={onNavigateToHistory} className="flex flex-col items-center justify-center text-primary font-bold bg-blue-50 rounded-full px-4 py-1" type="button">
+        <button onClick={onNavigateToHistory} className="flex flex-col items-center rounded-full bg-blue-50 px-4 py-1 text-primary" type="button">
           <History size={18} />
-          <span className="text-[10px] font-bold mt-0.5">Lịch sử</span>
+          <span className="mt-0.5 text-[10px] font-bold">Lịch sử</span>
         </button>
-        <button onClick={onNavigateHome} className="flex flex-col items-center justify-center text-slate-400 px-4 py-1" type="button">
+        <button onClick={onNavigateHome} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <User size={18} />
-          <span className="text-[10px] font-bold mt-0.5">Cá nhân</span>
+          <span className="mt-0.5 text-[10px] font-bold">Tài khoản</span>
         </button>
       </nav>
+    </div>
+  );
+}
+
+function TicketInfo({
+  label,
+  value,
+  subValue,
+  mono,
+}: {
+  label: string;
+  value: string;
+  subValue?: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+      <p className={`mt-1 text-sm font-black text-slate-800 ${mono ? 'font-mono uppercase' : ''}`}>{value}</p>
+      {subValue && <p className="mt-0.5 text-[10px] font-semibold text-slate-400">{subValue}</p>}
     </div>
   );
 }

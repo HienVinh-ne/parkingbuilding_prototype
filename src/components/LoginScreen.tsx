@@ -1,12 +1,33 @@
-import React, { useState } from 'react';
-import { Role, View, User } from '../types';
-import { Car, User as UserIcon, Lock, Eye, EyeOff, QrCode, CreditCard, Sparkles, UserCheck, ShieldAlert, Key } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+import { Role, User, View } from '../types';
+import {
+  Car,
+  CheckCircle2,
+  CreditCard,
+  Eye,
+  EyeOff,
+  Key,
+  Lock,
+  QrCode,
+  ShieldAlert,
+  Sparkles,
+  User as UserIcon,
+  UserCheck,
+} from 'lucide-react';
 
 interface LoginScreenProps {
   onLoginSuccess: (role: Role, view: View, user: User) => void;
   onNavigateToRegister: () => void;
   usersList: User[];
 }
+
+const demoRoles: Array<{ id: Role; label: string; icon: typeof UserIcon; email: string; password: string; name: string }> = [
+  { id: 'guest', label: 'Khách', icon: UserIcon, email: '', password: '', name: 'Khách vãng lai' },
+  { id: 'driver', label: 'Tài xế', icon: Car, email: 'driver@pbms.vn', password: 'driver123', name: 'Chủ xe' },
+  { id: 'staff', label: 'Nhân viên', icon: Key, email: 'staff_zone_a@pbms.vn', password: 'staff123', name: 'Nhân viên' },
+  { id: 'manager', label: 'Quản lý', icon: UserCheck, email: 'manager_hcm@pbms.vn', password: 'manager123', name: 'Quản lý' },
+  { id: 'admin', label: 'Admin', icon: ShieldAlert, email: 'root_admin@pbms.vn', password: 'admin123', name: 'Quản trị' },
+];
 
 export default function LoginScreen({
   onLoginSuccess,
@@ -16,307 +37,213 @@ export default function LoginScreen({
   const [identity, setIdentity] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [selectedRole, setSelectedRole] = useState<Role>('driver');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [selectedDemoRole, setSelectedDemoRole] = useState<string>('');
 
-  const handleDemoRoleClick = (role: string) => {
-    setSelectedDemoRole(role);
-    setErrorMsg('');
-
-    const roleData: Record<string, { email: string; pass: string; label: string }> = {
-      guest: { email: '', pass: '', label: 'Chế độ: Khách vãng lai' },
-      driver: { email: 'driver@pbms.vn', pass: 'driver123', label: 'Chế độ: Chủ xe' },
-      staff: { email: 'staff_zone_a@pbms.vn', pass: 'staff123', label: 'Chế độ: Nhân viên' },
-      manager: { email: 'manager_hcm@pbms.vn', pass: 'manager123', label: 'Chế độ: Quản lý' },
-      admin: { email: 'root_admin@pbms.vn', pass: 'admin123', label: 'Chế độ: Quản trị viên' },
-    };
-
-    setIdentity(roleData[role].email);
-    setPassword(roleData[role].pass);
+  const fillDemo = (role: Role) => {
+    const demo = demoRoles.find((item) => item.id === role)!;
+    setSelectedRole(role);
+    setIdentity(demo.email);
+    setPassword(demo.password);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
+  const handleLogin = (event: FormEvent) => {
+    event.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
-      // Find user mapping
-      let matchedRole: Role = 'guest';
-      let matchedUser: User | undefined;
-      const effectiveRole = selectedDemoRole || 'driver';
-
-      if (selectedDemoRole === 'guest' || (!identity && !password)) {
-        matchedRole = 'guest';
-        matchedUser = {
-          id: 'GUEST_TEMP',
-          name: 'Khách Vãng Lai',
-          email: 'guest@pbms.vn',
-          phone: '',
-          licensePlate: '',
-          role: 'guest',
-          joinedDate: '02/07/2026',
-          status: 'ACTIVE',
-          balance: 0,
-        };
-      } else {
-        matchedRole = effectiveRole as Role;
-        matchedUser = usersList.find((u) => u.role === matchedRole);
-
-        if (!matchedUser) {
-          if (identity.includes('admin')) matchedRole = 'admin';
-          else if (identity.includes('manager')) matchedRole = 'manager';
-          else if (identity.includes('staff')) matchedRole = 'staff';
-          else if (identity.includes('driver')) matchedRole = 'driver';
-
-          matchedUser = usersList.find((u) => u.role === matchedRole);
-        }
-      }
-
-      if (!matchedUser) {
-        matchedUser = {
-          id: 'U999',
-          name: 'Người Dùng PBMS',
-          email: identity || 'user@pbms.vn',
-          phone: '0900000000',
-          licensePlate: '59A-123.45',
-          role: matchedRole,
-          joinedDate: '02/07/2026',
-          status: 'ACTIVE',
-          balance: 500000,
-        };
-      }
+    window.setTimeout(() => {
+      const role = selectedRole || 'driver';
+      const matchedUser =
+        role === 'guest'
+          ? createGuest()
+          : usersList.find((user) => user.email === identity || user.role === role) || createFallbackUser(role, identity);
 
       setLoading(false);
       setSuccess(true);
 
-      setTimeout(() => {
-        const nextView: View = matchedRole === 'driver' || matchedRole === 'guest' ? 'DASHBOARD_CLIENT' : 'ADMIN_DASHBOARD';
-        onLoginSuccess(matchedRole, nextView, matchedUser!);
-      }, 800);
-    }, 1200);
+      window.setTimeout(() => {
+        const nextView: View = role === 'driver' || role === 'guest' ? 'DASHBOARD_CLIENT' : 'ADMIN_DASHBOARD';
+        onLoginSuccess(role, nextView, matchedUser);
+      }, 500);
+    }, 700);
   };
 
   return (
-    <div className="flex flex-col min-h-screen font-sans bg-background text-on-background relative overflow-x-hidden">
-      {/* Top Glow Background Decor */}
-      <div className="fixed top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/10 to-transparent -z-10"></div>
-
-      <main className="flex-grow flex flex-col items-center justify-center px-4 py-8 w-full max-w-md mx-auto">
-        {/* Brand Identity Section */}
-        <header className="text-center mb-8 w-full animate-in fade-in slide-in-from-top duration-700">
-          <div className="inline-flex items-center justify-center p-4 bg-primary rounded-2xl mb-4 shadow-lg shadow-primary/25">
-            <Car className="text-white w-9 h-9" fill="currentColor" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">PBMS Hệ Thống Gửi Xe</h1>
-          <p className="text-xs text-on-surface-variant mt-2 font-medium">Quản lý tòa nhà và bãi đỗ xe thông minh</p>
-        </header>
-
-        {/* Login Card */}
-        <div className="w-full bg-white rounded-2xl p-6 shadow-xl border border-slate-100 transition-all duration-300">
-          <h2 className="text-lg font-bold text-on-surface mb-5">Đăng nhập</h2>
-          
-          <form className="space-y-4" onSubmit={handleLogin}>
-            {/* Input Group: Email/Phone */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-on-surface-variant ml-1" htmlFor="identity">
-                Email hoặc Số điện thoại
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
-                  <UserIcon size={18} />
-                </div>
-                <input
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-sm text-on-surface placeholder:text-slate-400/80 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
-                  id="identity"
-                  name="identity"
-                  placeholder="Nhập tài khoản của bạn"
-                  required={selectedDemoRole !== 'guest'}
-                  type="text"
-                  value={identity}
-                  onChange={(e) => setIdentity(e.target.value)}
-                />
+    <div className="min-h-screen bg-background text-on-background">
+      <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-8">
+        <div className="grid w-full gap-6 lg:grid-cols-[1fr_420px] lg:items-center">
+          <section className="hidden lg:block">
+            <div className="max-w-lg">
+              <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+                <Car size={30} />
+              </div>
+              <h1 className="text-4xl font-black leading-tight text-primary">PBMS Smart Parking</h1>
+              <p className="mt-4 text-base font-medium leading-7 text-slate-600">
+                Quản lý đặt chỗ, thanh toán VNPAY, vé QR và vận hành bãi xe trong một giao diện gọn gàng.
+              </p>
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                <HeroMetric value="24/7" label="Giám sát" />
+                <HeroMetric value="QR" label="Vé điện tử" />
+                <HeroMetric value="VNPAY" label="Thanh toán" />
               </div>
             </div>
+          </section>
 
-            {/* Input Group: Password */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-on-surface-variant ml-1" htmlFor="password">
-                Mật khẩu
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
-                  <Lock size={18} />
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5">
+            <header className="mb-5 text-center lg:text-left">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white lg:mx-0">
+                <Car size={28} />
+              </div>
+              <h2 className="text-xl font-black text-primary">Đăng nhập</h2>
+              <p className="mt-1 text-xs font-medium text-slate-500">Chọn vai trò demo hoặc nhập tài khoản của bạn.</p>
+            </header>
+
+            <form className="space-y-4" onSubmit={handleLogin}>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-bold text-slate-500">Email hoặc số điện thoại</span>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/15"
+                    placeholder="driver@pbms.vn"
+                    required={selectedRole !== 'guest'}
+                    value={identity}
+                    onChange={(event) => setIdentity(event.target.value)}
+                  />
                 </div>
-                <input
-                  className="block w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-sm text-on-surface placeholder:text-slate-400/80 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
-                  id="password"
-                  name="password"
-                  placeholder="••••••••"
-                  required={selectedDemoRole !== 'guest' && selectedDemoRole !== ''}
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-primary transition-colors"
-                  onClick={() => setShowPassword(!showPassword)}
-                  type="button"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-xs font-bold text-slate-500">Mật khẩu</span>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-11 text-sm font-semibold outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/15"
+                    placeholder="Nhập mật khẩu"
+                    required={selectedRole !== 'guest'}
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary"
+                    onClick={() => setShowPassword((value) => !value)}
+                    type="button"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </label>
+
+              <div className="flex items-center justify-between">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-500">
+                  <input checked={rememberMe} onChange={() => setRememberMe((value) => !value)} type="checkbox" />
+                  Ghi nhớ đăng nhập
+                </label>
+                <button className="text-xs font-bold text-secondary hover:text-primary" type="button">
+                  Quên mật khẩu?
                 </button>
               </div>
+
+              <button
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white shadow-md transition hover:bg-primary/95 disabled:opacity-80"
+                disabled={loading || success}
+                type="submit"
+              >
+                {loading ? 'Đang xử lý...' : success ? <><CheckCircle2 size={18} /> Đăng nhập thành công</> : 'Đăng nhập'}
+              </button>
+            </form>
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Demo nhanh</span>
+              <div className="h-px flex-1 bg-slate-200" />
             </div>
 
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center cursor-pointer group">
-                <div className="relative flex items-center">
-                  <input
-                    className="peer sr-only"
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={() => setRememberMe(!rememberMe)}
-                  />
-                  <div className="w-4.5 h-4.5 bg-slate-50 border border-slate-300 rounded peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
-                    <svg
-                      className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    >
-                      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                </div>
-                <span className="ml-2 text-xs font-semibold text-on-surface-variant group-hover:text-primary transition-colors">
-                  Ghi nhớ đăng nhập
-                </span>
-              </label>
-              <a href="#" className="text-xs font-semibold text-secondary hover:text-primary transition-colors">
-                Quên mật khẩu?
-              </a>
+            <div className="grid grid-cols-5 gap-2">
+              {demoRoles.map((role) => {
+                const Icon = role.icon;
+                const active = selectedRole === role.id;
+                return (
+                  <button
+                    key={role.id}
+                    onClick={() => fillDemo(role.id)}
+                    className={`flex min-h-16 flex-col items-center justify-center rounded-xl border p-2 transition ${
+                      active ? 'border-primary bg-blue-50 text-primary' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                    }`}
+                    type="button"
+                  >
+                    <Icon size={17} />
+                    <span className="mt-1 text-[9px] font-black">{role.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Submit Button */}
-            <button
-              className={`w-full py-3 bg-primary text-white font-bold text-sm rounded-xl shadow-md active:scale-95 transition-all mt-2 flex items-center justify-center gap-2 ${
-                loading || success ? 'opacity-90 pointer-events-none' : 'hover:bg-primary/95'
-              }`}
-              type="submit"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span>Đang xử lý...</span>
-                </>
-              ) : success ? (
-                <>
-                  <UserCheck size={18} />
-                  <span>Đăng nhập thành công!</span>
-                </>
-              ) : (
-                <span>Đăng nhập</span>
-              )}
-            </button>
-          </form>
-
-          {/* Social Login Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button onClick={() => fillDemo('guest')} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-600" type="button">
+                <QrCode size={16} className="text-primary" />
+                Quét QR
+              </button>
+              <button onClick={() => fillDemo('guest')} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-600" type="button">
+                <CreditCard size={16} className="text-rose-500" />
+                Thẻ từ
+              </button>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-white text-slate-400 font-bold uppercase tracking-widest text-[9px]">
-                Hoặc tiếp tục với
-              </span>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => handleDemoRoleClick('guest')}
-              className="flex items-center justify-center py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-on-surface-variant transition-colors gap-1.5"
-            >
-              <QrCode className="text-primary" size={16} />
-              Mã QR
-            </button>
-            <button
-              onClick={() => handleDemoRoleClick('guest')}
-              className="flex items-center justify-center py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-on-surface-variant transition-colors gap-1.5"
-            >
-              <CreditCard className="text-rose-500" size={16} />
-              Thẻ từ
-            </button>
-          </div>
+            <p className="mt-5 text-center text-sm font-medium text-slate-500">
+              Chưa có tài khoản?
+              <button onClick={onNavigateToRegister} className="ml-1 font-black text-primary hover:underline" type="button">
+                Đăng ký ngay
+              </button>
+            </p>
+
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              <Sparkles size={13} className="text-secondary" />
+              PBMS prototype v2.4
+            </p>
+          </section>
         </div>
       </main>
-
-      {/* Prototype Role Switcher inside card footer */}
-      <section className="mt-auto px-4 pb-12 w-full max-w-md mx-auto">
-        <div className="p-4 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
-          <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Sparkles className="text-secondary" size={14} />
-            PROTOTYPE ROLE SWITCHER
-          </h3>
-          <div className="grid grid-cols-5 gap-1.5" id="roleSwitcher">
-            {[
-              { id: 'guest', label: 'GUEST', icon: UserIcon },
-              { id: 'driver', label: 'DRIVER', icon: Car },
-              { id: 'staff', label: 'STAFF', icon: Key },
-              { id: 'manager', label: 'MANAGER', icon: UserCheck },
-              { id: 'admin', label: 'ADMIN', icon: ShieldAlert },
-            ].map((role) => {
-              const Icon = role.icon;
-              const isSelected = selectedDemoRole === role.id;
-              return (
-                <button
-                  key={role.id}
-                  className={`flex flex-col items-center justify-center p-2 rounded-xl border hover:border-primary transition-all active:scale-95 group ${
-                    isSelected
-                      ? 'bg-blue-100 border-primary shadow-sm ring-2 ring-primary/10 font-bold'
-                      : 'bg-white border-slate-200 text-slate-500'
-                  }`}
-                  onClick={() => handleDemoRoleClick(role.id)}
-                  type="button"
-                >
-                  <Icon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-slate-400 group-hover:text-primary'}`} />
-                  <span className={`text-[8px] font-extrabold mt-1 uppercase tracking-tighter ${isSelected ? 'text-primary' : 'text-slate-500'}`}>
-                    {role.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[10px] text-on-surface-variant/80 italic text-center mt-3 font-medium">
-            {selectedDemoRole
-              ? `Chế độ: ${
-                  selectedDemoRole === 'driver'
-                    ? 'Chủ xe'
-                    : selectedDemoRole === 'staff'
-                    ? 'Nhân viên hiện trường'
-                    : selectedDemoRole === 'manager'
-                    ? 'Quản lý chi nhánh'
-                    : selectedDemoRole === 'admin'
-                    ? 'Quản trị viên hệ thống'
-                    : 'Khách vãng lai'
-                }. Click Đăng nhập để vào.`
-              : 'Chọn vai trò để xem trước luồng hệ thống.'}
-          </p>
-        </div>
-      </section>
-
-      {/* Footer Meta */}
-      <footer className="pb-safe pt-2 text-center">
-        <p className="text-[10px] text-slate-400 font-bold">© 2024 PBMS Smart Solution v2.4.0</p>
-      </footer>
     </div>
   );
+}
+
+function HeroMetric({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-lg font-black text-primary">{value}</p>
+      <p className="mt-1 text-xs font-bold uppercase text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function createGuest(): User {
+  return {
+    id: 'GUEST_TEMP',
+    name: 'Khách vãng lai',
+    email: 'guest@pbms.vn',
+    phone: '',
+    licensePlate: '',
+    role: 'guest',
+    joinedDate: '02/07/2026',
+    status: 'ACTIVE',
+    balance: 0,
+  };
+}
+
+function createFallbackUser(role: Role, identity: string): User {
+  return {
+    id: 'U999',
+    name: 'Người dùng PBMS',
+    email: identity || 'user@pbms.vn',
+    phone: '0900000000',
+    licensePlate: '59A-123.45',
+    role,
+    joinedDate: '02/07/2026',
+    status: 'ACTIVE',
+    balance: 500000,
+  };
 }
