@@ -1,0 +1,6 @@
+{
+  "name": "PBMS - Hệ thống Đặt chỗ và Quản lý Gửi xe",
+  "description": "Hệ thống quản lý tòa nhà và bãi đỗ xe thông minh PBMS. Cho phép đặt chỗ đỗ xe trước, thanh toán trực tuyến qua VNPAY, quản lý vé xe, xem lịch sử và bảng điều khiển quản trị.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
