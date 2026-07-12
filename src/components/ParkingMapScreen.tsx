@@ -11,12 +11,14 @@ import {
   MapPin,
   Navigation,
   User as UserIcon,
+  CreditCard,
 } from 'lucide-react';
 
 interface ParkingMapScreenProps {
   slots: ParkingSlot[];
   onSelectSlot: (slot: ParkingSlot) => void;
   onNavigateToHistory: () => void;
+  onNavigateToMembership: () => void;
   currentRole: Role;
   currentUser: User | null;
   onLogout: () => void;
@@ -52,6 +54,7 @@ export default function ParkingMapScreen({
   slots,
   onSelectSlot,
   onNavigateToHistory,
+  onNavigateToMembership,
   currentRole,
   currentUser,
   onLogout,
@@ -92,6 +95,14 @@ export default function ParkingMapScreen({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={onNavigateToMembership}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-white/85 transition hover:bg-white/10 hover:text-white"
+              title="Membership của tôi"
+              type="button"
+            >
+              <CreditCard size={19} />
+            </button>
             <button
               onClick={onNavigateToHistory}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-white/85 transition hover:bg-white/10 hover:text-white"
@@ -251,6 +262,10 @@ export default function ParkingMapScreen({
         <button onClick={onNavigateToHistory} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <History size={18} />
           <span className="mt-0.5 text-[10px] font-bold">Lịch sử</span>
+        </button>
+        <button onClick={onNavigateToMembership} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
+          <CreditCard size={18} />
+          <span className="mt-0.5 text-[10px] font-bold">Membership</span>
         </button>
         <button onClick={onLogout} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <UserIcon size={18} />

@@ -13,7 +13,8 @@ export type View =
   | 'TRANSACTIONS'
   | 'USER_MGMT'
   | 'REPORTS'
-  | 'SYSTEM_SETTINGS';
+  | 'SYSTEM_SETTINGS'
+  | 'MEMBERSHIP';
 
 export interface User {
   id: string;
@@ -71,4 +72,17 @@ export interface Transaction {
   timeStr: string;
   method: string;
   status: 'success' | 'failed' | 'pending';
+}
+
+export interface MembershipCard {
+  id: string;
+  ticketCode: string;
+  startTime: string;
+  endTime: string;
+  vehicleType: 'oto' | 'xemay' | 'xe-dap';
+  durationMonths: number;
+  price: number;
+  slots: { slotId: string; slotName: string; slotStatus: string }[];
+  vehicles: string[];
+  status: 'ACTIVE' | 'CANCELLED';
 }

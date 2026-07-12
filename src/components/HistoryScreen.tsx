@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Reservation, User } from '../types';
-import { ArrowLeft, CalendarClock, Car, CheckSquare, History, Home, MapPin, Receipt, Trash2, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Car, CheckSquare, History, Home, MapPin, Receipt, Trash2, User as UserIcon, CreditCard } from 'lucide-react';
 
 interface HistoryScreenProps {
   reservations: Reservation[];
   currentUser: User | null;
   onCancelReservation: (id: string) => void;
   onNavigateHome: () => void;
+  onNavigateToMembership: () => void;
   onSelectReservationDetails: (reservation: Reservation) => void;
 }
 
@@ -18,6 +19,7 @@ export default function HistoryScreen({
   currentUser,
   onCancelReservation,
   onNavigateHome,
+  onNavigateToMembership,
   onSelectReservationDetails,
 }: HistoryScreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>('upcoming');
@@ -99,6 +101,10 @@ export default function HistoryScreen({
         <button className="flex flex-col items-center rounded-full bg-blue-50 px-4 py-1 text-primary" type="button">
           <History size={18} />
           <span className="mt-0.5 text-[10px] font-bold">Lịch sử</span>
+        </button>
+        <button onClick={onNavigateToMembership} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
+          <CreditCard size={18} />
+          <span className="mt-0.5 text-[10px] font-bold">Membership</span>
         </button>
         <button onClick={onNavigateHome} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <UserIcon size={18} />

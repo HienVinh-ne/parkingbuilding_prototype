@@ -1,4 +1,4 @@
-import { User, Reservation, ParkingSlot, SystemLog, Transaction } from './types';
+import { User, Reservation, ParkingSlot, SystemLog, Transaction, MembershipCard } from './types';
 
 export const ADMIN_AVATAR = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=160&q=80';
 export const PARKING_IMAGE = 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=1200&q=80';
@@ -85,4 +85,19 @@ export const REVENUE_DATA_WEEK = [
   { day: 'Thứ 6', revenue: 1850000, occupancy: 89 },
   { day: 'Thứ 7', revenue: 2400000, occupancy: 95 },
   { day: 'Chủ nhật', revenue: 2100000, occupancy: 91 },
+];
+
+export const INITIAL_MEMBERSHIP_CARDS: MembershipCard[] = [
+  {
+    id: 'MEM-001',
+    ticketCode: 'MEM-A104-12M',
+    startTime: '10:00 - 12/07/2026',
+    endTime: '10:00 - 12/07/2027',
+    vehicleType: 'oto',
+    durationMonths: 12,
+    price: 16200000,
+    slots: [{ slotId: 'A-104', slotName: 'A-104', slotStatus: 'Reserved' }],
+    vehicles: ['59A-123.45', '59C-333.33'],
+    status: 'ACTIVE',
+  },
 ];
