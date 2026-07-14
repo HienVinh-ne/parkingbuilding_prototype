@@ -81,11 +81,11 @@ export default function HistoryScreen({
               </div>
             ))
           ) : (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
-              <History className="mx-auto text-slate-300" size={34} />
-              <p className="mt-3 text-sm font-black text-slate-700">Chưa có dữ liệu</p>
-              <p className="mt-1 text-xs font-medium text-slate-500">Các vé đặt chỗ của bạn sẽ xuất hiện tại đây.</p>
-              <button onClick={onNavigateHome} className="mt-4 rounded-xl bg-primary px-4 py-2 text-xs font-black text-white" type="button">
+            <div className="ui-empty-state">
+              <span className="ui-icon-well"><History size={22} /></span>
+              <p className="mt-4 text-sm font-extrabold text-slate-800">Chưa có lượt đặt chỗ</p>
+              <p className="mx-auto mt-2 max-w-xs text-xs font-medium leading-5 text-slate-500">Các vé phù hợp với trạng thái này sẽ xuất hiện tại đây sau khi bạn đặt chỗ.</p>
+              <button onClick={onNavigateHome} className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-xs font-extrabold text-white" type="button">
                 Đặt chỗ ngay
               </button>
             </div>

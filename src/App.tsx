@@ -38,7 +38,7 @@ export default function App() {
   const [selectedSlot, setSelectedSlot] = useState<ParkingSlot | null>(null);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [pendingMembershipCard, setPendingMembershipCard] = useState<MembershipCard | null>(null);
-  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(true);
+  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
   // Handlers for switching roles instantly via prototype switcher
   const handleRoleSwitch = (role: Role, view: View) => {
@@ -387,7 +387,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8ff] text-slate-800">
+    <div className="min-h-screen bg-background text-slate-800">
       
       {/* 1. LOGIN SCREEN */}
       {currentView === 'LOGIN' && (

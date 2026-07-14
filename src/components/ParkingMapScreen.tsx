@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ParkingSlot, Role, User } from '../types';
+import ProgressSteps from './ui/ProgressSteps';
 import {
   Bike,
   Car,
@@ -241,8 +242,10 @@ export default function ParkingMapScreen({
               </div>
               <SlotGrid slots={filteredSlots.slice(4, 8)} activeSlot={activeSlot} setActiveSlot={setActiveSlot} />
               {filteredSlots.length === 0 && (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs font-semibold text-slate-500">
-                  Không có slot phù hợp với bộ lọc hiện tại.
+                <div className="ui-empty-state py-8">
+                  <span className="ui-icon-well"><MapPin size={21} /></span>
+                  <p className="mt-4 text-sm font-extrabold text-slate-800">Không tìm thấy vị trí phù hợp</p>
+                  <p className="mt-2 text-xs font-medium text-slate-500">Hãy thử chọn tầng khác hoặc thay đổi bộ lọc trạng thái.</p>
                 </div>
               )}
             </div>
@@ -272,24 +275,6 @@ export default function ParkingMapScreen({
           <span className="mt-0.5 text-[10px] font-bold">Tài khoản</span>
         </button>
       </nav>
-    </div>
-  );
-}
-
-function ProgressSteps({ active }: { active: number }) {
-  const steps = ['Chọn chỗ', 'Biển số', 'Xác nhận', 'Thanh toán', 'Hoàn tất'];
-  return (
-    <div className="mb-4 grid grid-cols-5 gap-1 rounded-xl bg-slate-50 p-1">
-      {steps.map((step, index) => (
-        <div
-          key={step}
-          className={`rounded-lg px-2 py-2 text-center text-[9px] font-black uppercase ${
-            index + 1 <= active ? 'bg-primary text-white' : 'text-slate-400'
-          }`}
-        >
-          {step}
-        </div>
-      ))}
     </div>
   );
 }

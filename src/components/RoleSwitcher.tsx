@@ -28,7 +28,7 @@ export default function RoleSwitcher({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 z-50 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-xs font-black text-primary shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl"
+        className="fixed bottom-24 right-3 z-50 flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-2.5 text-xs font-black text-primary shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-2xl sm:right-5 sm:px-4 sm:py-3"
         id="btn-role-switcher"
         type="button"
       >
@@ -39,7 +39,7 @@ export default function RoleSwitcher({
   }
 
   return (
-    <div className="fixed bottom-20 right-4 z-50 w-[min(92vw,340px)] rounded-xl border border-slate-200 bg-white p-4 font-sans shadow-2xl">
+    <div className="fixed bottom-20 left-3 right-3 z-50 max-h-[70dvh] overflow-y-auto rounded-xl border border-slate-200 bg-white/95 p-4 font-sans shadow-2xl backdrop-blur-xl sm:left-auto sm:right-5 sm:w-[340px]">
       <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <p className="text-sm font-black text-primary">Prototype Role Switcher</p>

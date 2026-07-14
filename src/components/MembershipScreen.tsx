@@ -24,7 +24,7 @@ interface MembershipScreenProps {
   currentUser: User | null;
   currentRole: Role;
   onBack: () => void;
-  onRegisterMembership: (newCard: any, paymentMethod: string) => void;
+  onRegisterMembership: (newCard: MembershipCard, paymentMethod: string) => void;
   onCancelMembership: (cardId: string) => void;
 }
 

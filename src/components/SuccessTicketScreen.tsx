@@ -1,6 +1,7 @@
 import { Reservation } from '../types';
 import { CalendarClock, Check, History, Home, Map, QrCode, ShieldAlert, User, Car } from 'lucide-react';
 import { TICKET_QR_IMAGE } from '../mockData';
+import ProgressSteps from './ui/ProgressSteps';
 
 interface SuccessTicketScreenProps {
   reservation: Reservation;
@@ -16,7 +17,7 @@ export default function SuccessTicketScreen({
   return (
     <div className="min-h-screen bg-background pb-28 text-on-background">
       <main className="mx-auto flex w-full max-w-sm flex-col items-center px-4 py-6">
-        <ProgressSteps active={5} />
+        <ProgressSteps active={5} className="mb-6 w-full" />
         <div className="animate-success mb-5 flex flex-col items-center text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-lg shadow-emerald-100">
             <Check size={34} strokeWidth={3} />
@@ -108,26 +109,6 @@ export default function SuccessTicketScreen({
           <span className="mt-0.5 text-[10px] font-bold">Tài khoản</span>
         </button>
       </nav>
-    </div>
-  );
-}
-
-function ProgressSteps({ active }: { active: number }) {
-  const steps = ['Chọn chỗ', 'Biển số', 'Xác nhận', 'Thanh toán', 'Hoàn tất'];
-  return (
-    <div className="mb-5 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-      <div className="grid grid-cols-5 gap-1">
-        {steps.map((step, index) => (
-          <div
-            key={step}
-            className={`rounded-lg px-1 py-2 text-center text-[8px] font-black uppercase ${
-              index + 1 <= active ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400'
-            }`}
-          >
-            {step}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

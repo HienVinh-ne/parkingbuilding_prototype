@@ -19,8 +19,8 @@ export const INITIAL_USERS: User[] = [
 ];
 
 export const INITIAL_RESERVATIONS: Reservation[] = [
-  { id: 'PB-8899-2026', slotId: 'A-102', floor: 'Tầng 1', licensePlate: '59A-123.45', vehicleType: 'oto', startTime: '14:30 - Hôm nay', endTime: '17:30 (3 giờ)', durationHours: 3, totalFee: 60000, status: 'UPCOMING', dateStr: '02/07/2026' },
-  { id: 'PB-9034-2026', slotId: 'B-046', floor: 'Tầng 2', licensePlate: '51H-246.80', vehicleType: 'oto', startTime: '16:00 - Hôm nay', endTime: '20:00 (4 giờ)', durationHours: 4, totalFee: 80000, status: 'UPCOMING', dateStr: '02/07/2026' },
+  { id: 'PB-8899-2026', slotId: 'A-102', floor: 'Tầng 1', licensePlate: '59A-123.45', vehicleType: 'oto', startTime: '14:30 - Hôm nay', endTime: '17:30 (3 giờ)', durationHours: 3, totalFee: 60000, status: 'UPCOMING', dateStr: '14/07/2026' },
+  { id: 'PB-9034-2026', slotId: 'B-046', floor: 'Tầng 2', licensePlate: '51H-246.80', vehicleType: 'oto', startTime: '16:00 - Hôm nay', endTime: '20:00 (4 giờ)', durationHours: 4, totalFee: 80000, status: 'UPCOMING', dateStr: '14/07/2026' },
   { id: 'PB-9021-2026', slotId: 'B-045', floor: 'Tầng 2', licensePlate: '51G-888.88', vehicleType: 'oto', startTime: '08:30 - 15/06/2026', endTime: '12:30 (4 giờ)', durationHours: 4, totalFee: 80000, status: 'COMPLETED', dateStr: '15/06/2026' },
   { id: 'PB-8842-2026', slotId: 'C-045', floor: 'Tầng 3', licensePlate: '51H-123.45', vehicleType: 'oto', startTime: '09:00 - 10/06/2026', endTime: '11:00 (2 giờ)', durationHours: 2, totalFee: 40000, status: 'COMPLETED', dateStr: '10/06/2026' },
   { id: 'PB-7712-2026', slotId: 'C-013', floor: 'Tầng 3', licensePlate: '59A-999.99', vehicleType: 'xemay', startTime: '07:30 - 09/06/2026', endTime: '17:30 (10 giờ)', durationHours: 10, totalFee: 50000, status: 'COMPLETED', dateStr: '09/06/2026' },
@@ -28,7 +28,7 @@ export const INITIAL_RESERVATIONS: Reservation[] = [
 
 export const INITIAL_PARKING_SLOTS: ParkingSlot[] = [
   { id: 'A-101', zone: 'A', floor: 'Tầng 1', status: 'occupied', vehicleType: 'oto', currentSession: { licensePlate: '51G-111.11', checkInTime: '10:00', estimatedHours: 4, fee: 80000 } },
-  { id: 'A-102', zone: 'A', floor: 'Tầng 1', status: 'available', vehicleType: 'oto' },
+  { id: 'A-102', zone: 'A', floor: 'Tầng 1', status: 'reserved', vehicleType: 'oto', currentSession: { licensePlate: '59A-123.45', checkInTime: '14:30', estimatedHours: 3, fee: 60000 } },
   { id: 'A-103', zone: 'A', floor: 'Tầng 1', status: 'available', vehicleType: 'oto' },
   { id: 'A-104', zone: 'A', floor: 'Tầng 1', status: 'reserved', vehicleType: 'oto', currentSession: { licensePlate: '51F-222.22', checkInTime: '15:00', estimatedHours: 2, fee: 40000 } },
   { id: 'A-105', zone: 'A', floor: 'Tầng 1', status: 'occupied', vehicleType: 'oto', currentSession: { licensePlate: '59C-333.33', checkInTime: '12:30', estimatedHours: 5, fee: 100000 } },
@@ -96,7 +96,7 @@ export const INITIAL_MEMBERSHIP_CARDS: MembershipCard[] = [
     vehicleType: 'oto',
     durationMonths: 12,
     price: 16200000,
-    slots: [{ slotId: 'A-104', slotName: 'A-104', slotStatus: 'Reserved' }],
+    slots: [{ slotId: 'A-104', slotName: 'Vị trí A-104', slotStatus: 'Đã giữ chỗ' }],
     vehicles: ['59A-123.45', '59C-333.33'],
     status: 'ACTIVE',
   },

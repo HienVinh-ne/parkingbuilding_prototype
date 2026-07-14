@@ -15,6 +15,7 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { PARKING_IMAGE } from '../mockData';
+import ProgressSteps from './ui/ProgressSteps';
 
 interface ReservationScreenProps {
   selectedSlot: ParkingSlot;
@@ -207,26 +208,6 @@ export default function ReservationScreen({
           </div>
         </aside>
       </main>
-    </div>
-  );
-}
-
-function ProgressSteps({ active }: { active: number }) {
-  const steps = ['Chọn chỗ', 'Biển số', 'Xác nhận', 'Thanh toán', 'Hoàn tất'];
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-      <div className="grid grid-cols-5 gap-1">
-        {steps.map((step, index) => (
-          <div
-            key={step}
-            className={`rounded-lg px-2 py-2 text-center text-[9px] font-black uppercase ${
-              index + 1 <= active ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400'
-            }`}
-          >
-            {step}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

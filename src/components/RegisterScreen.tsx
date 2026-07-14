@@ -141,7 +141,7 @@ export default function RegisterScreen({
               disabled={loading}
               type="submit"
             >
-              {loading ? 'Đang tạo tài khoản...' : <><span>Đăng ký ngay</span><ArrowRight size={17} /></>}
+              {loading ? <><span className="ui-spinner" aria-hidden="true" />Đang tạo tài khoản</> : <><span>Đăng ký ngay</span><ArrowRight size={17} /></>}
             </button>
           </form>
         </section>

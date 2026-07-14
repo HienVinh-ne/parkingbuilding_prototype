@@ -152,7 +152,7 @@ export default function LoginScreen({
                 disabled={loading || success}
                 type="submit"
               >
-                {loading ? 'Đang xử lý...' : success ? <><CheckCircle2 size={18} /> Đăng nhập thành công</> : 'Đăng nhập'}
+                {loading ? <><span className="ui-spinner" aria-hidden="true" />Đang xử lý</> : success ? <><CheckCircle2 size={18} /> Đăng nhập thành công</> : 'Đăng nhập'}
               </button>
             </form>
 
