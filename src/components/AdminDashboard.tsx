@@ -44,9 +44,9 @@ const ROLE_LABEL: Record<Role, string> = {
 const ROLE_TABS: Record<Role, AdminTab[]> = {
   guest: [],
   driver: [],
-  staff: ['gate', 'dashboard', 'map', 'transactions'],
-  manager: ['dashboard', 'map', 'transactions', 'users', 'reports'],
-  admin: ['dashboard', 'gate', 'map', 'transactions', 'users', 'reports', 'settings'],
+  staff: ['gate', 'map', 'transactions'],
+  manager: ['dashboard', 'map', 'transactions', 'reports'],
+  admin: ['dashboard', 'users', 'reports', 'settings'],
 };
 
 const NAV_ITEMS: Array<{ id: AdminTab; label: string; mobileLabel: string; icon: typeof LayoutDashboard; helper: string }> = [
@@ -421,8 +421,8 @@ export default function AdminDashboard({
         )}
 
         {activeTab === 'transactions' && (
-          <Page title="Giao dịch bãi xe" subtitle="Tra cứu thanh toán theo mã giao dịch, biển số hoặc slot.">
-            <SearchBox value={txSearch} onChange={setTxSearch} placeholder="Tìm giao dịch, biển số, slot..." />
+          <Page title="Giao dịch bãi xe" subtitle="Tra cứu thanh toán theo mã giao dịch, biển số hoặc vị trí đỗ.">
+            <SearchBox value={txSearch} onChange={setTxSearch} placeholder="Tìm mã giao dịch, biển số, vị trí..." />
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <TransactionTable transactions={filteredTransactions} />
             </section>
@@ -563,9 +563,9 @@ function RoleHelp({ role }: { role: Role }) {
   const help: Record<Role, string> = {
     guest: '',
     driver: '',
-    staff: 'Nhân viên: xem tổng quan, xử lý sơ đồ bãi xe và tra cứu giao dịch.',
-    manager: 'Quản lý: thêm quyền quản lý người dùng và xem báo cáo doanh thu.',
-    admin: 'Admin: toàn quyền cấu hình hệ thống, người dùng, báo cáo và vận hành.',
+    staff: 'Nhân viên: xử lý xe ra vào, cập nhật bãi xe và tra cứu giao dịch.',
+    manager: 'Quản lý: theo dõi tổng quan, bãi xe, giao dịch và báo cáo doanh thu.',
+    admin: 'Quản trị viên: quản lý tài khoản, báo cáo và cấu hình hệ thống.',
   };
   return <p className="rounded-xl bg-white/10 p-3 text-[11px] font-semibold leading-5 text-white/70">{help[role]}</p>;
 }
@@ -675,8 +675,40 @@ function UserTable({ users, canManage, onToggleStatus, onDelete }: { users: User
 }
 
 function TransactionTable({ transactions }: { transactions: Transaction[] }) {
+  if (transactions.length === 0) {
+    return (
+      <div className="ui-empty-state m-4">
+        <span className="ui-icon-well"><Receipt size={21} /></span>
+        <p className="mt-4 text-sm font-extrabold text-slate-800">Không tìm thấy giao dịch</p>
+        <p className="mt-2 text-xs font-medium text-slate-500">Hãy kiểm tra lại mã giao dịch, biển số hoặc vị trí đỗ.</p>
+      </div>
+    );
+  }
+
   return (
-    <table className="w-full min-w-[760px] text-left text-xs">
+    <>
+      <div className="divide-y divide-slate-100 md:hidden">
+        {transactions.map((tx) => (
+          <article key={tx.id} className="p-4 transition-colors active:bg-slate-50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-xs font-black text-primary">{tx.id}</p>
+                <p className="mt-1 truncate font-mono text-base font-black uppercase text-slate-800">{tx.licensePlate}</p>
+              </div>
+              <TransactionStatus status={tx.status} />
+            </div>
+
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl bg-slate-50 p-3">
+              <TransactionDetail label="Vị trí" value={tx.slotId} strong />
+              <TransactionDetail label="Số tiền" value={`${tx.amount.toLocaleString('vi-VN')} VNĐ`} strong />
+              <TransactionDetail label="Phương thức" value={tx.method} />
+              <TransactionDetail label="Thời gian" value={tx.timeStr} />
+            </dl>
+          </article>
+        ))}
+      </div>
+
+      <table className="hidden w-full min-w-[760px] text-left text-xs md:table">
       <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wide text-slate-400">
         <tr>
           <th className="p-3">Mã GD</th>
@@ -698,14 +730,30 @@ function TransactionTable({ transactions }: { transactions: Transaction[] }) {
             <td className="p-3 font-semibold">{tx.method}</td>
             <td className="p-3 font-semibold text-slate-500">{tx.timeStr}</td>
             <td className="p-3">
-              <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase ${tx.status === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : tx.status === 'pending' ? 'border-amber-100 bg-amber-50 text-amber-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
-                {tx.status === 'success' ? 'Thành công' : tx.status === 'pending' ? 'Đang xử lý' : 'Thất bại'}
-              </span>
+              <TransactionStatus status={tx.status} />
             </td>
           </tr>
         ))}
       </tbody>
-    </table>
+      </table>
+    </>
+  );
+}
+
+function TransactionStatus({ status }: { status: Transaction['status'] }) {
+  return (
+    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${status === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : status === 'pending' ? 'border-amber-100 bg-amber-50 text-amber-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
+      {status === 'success' ? 'Thành công' : status === 'pending' ? 'Đang xử lý' : 'Thất bại'}
+    </span>
+  );
+}
+
+function TransactionDetail({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{label}</dt>
+      <dd className={`mt-1 truncate text-xs ${strong ? 'font-black text-slate-800' : 'font-semibold text-slate-600'}`}>{value}</dd>
+    </div>
   );
 }
 
