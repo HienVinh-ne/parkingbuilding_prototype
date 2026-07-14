@@ -103,8 +103,8 @@ export default function ReservationScreen({
               <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wide text-white/75">Vị trí đã chọn</p>
-                  <h2 className="text-2xl font-black">Slot {selectedSlot.id}</h2>
-                  <p className="text-xs font-semibold text-white/80">{selectedSlot.floor} · Zone {selectedSlot.zone}</p>
+                  <h2 className="text-2xl font-black">Vị trí {selectedSlot.id}</h2>
+                  <p className="text-xs font-semibold text-white/80">{selectedSlot.floor} · Khu vực {selectedSlot.zone}</p>
                 </div>
                 <div className="rounded-xl bg-white/15 p-3 backdrop-blur">
                   <MapPin size={22} />

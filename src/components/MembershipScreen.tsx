@@ -169,7 +169,7 @@ export default function MembershipScreen({
       vehicleType: selectedType,
       durationMonths: selectedDuration,
       price: totalPrice,
-      slots: [{ slotId: selectedSlotId, slotName: `Slot ${selectedSlotId}`, slotStatus: 'Reserved' }],
+      slots: [{ slotId: selectedSlotId, slotName: `Vị trí ${selectedSlotId}`, slotStatus: 'Đã giữ chỗ' }],
       vehicles: plates,
       status: 'ACTIVE' as const
     };
@@ -191,7 +191,7 @@ export default function MembershipScreen({
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-sm font-extrabold">Membership của tôi</h1>
+            <h1 className="text-sm font-extrabold">Thẻ tháng của tôi</h1>
             <p className="text-[11px] font-medium text-white/75">Quản lý thẻ thành viên và gửi xe cố định</p>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function MembershipScreen({
                 <ShieldCheck size={22} />
               </div>
               <div>
-                <h2 className="text-base font-extrabold text-slate-900">Membership đang hoạt động</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Thẻ tháng đang sử dụng</h2>
                 <p className="text-xs text-slate-500 font-medium">Bạn có quyền ra vào bãi xe và đỗ xe tại vị trí cố định của mình.</p>
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function MembershipScreen({
                 <CreditCard size={20} />
               </div>
               <div>
-                <h2 className="text-base font-black text-slate-900">Đăng ký Membership mới</h2>
+                <h2 className="text-base font-black text-slate-900">Đăng ký thẻ tháng mới</h2>
                 <p className="text-xs text-slate-500 font-medium">Thuê bao đỗ xe tháng giúp tiết kiệm chi phí và luôn có chỗ đỗ cố định.</p>
               </div>
             </div>
@@ -380,7 +380,7 @@ export default function MembershipScreen({
                             </span>
                           )}
                           <p className="text-sm font-black text-slate-800">{dur.label}</p>
-                          <p className="mt-0.5 text-[9px] font-semibold text-slate-400">Cố định slot đỗ</p>
+                          <p className="mt-0.5 text-[9px] font-semibold text-slate-400">Vị trí đỗ cố định</p>
                         </button>
                       );
                     })}
@@ -389,7 +389,7 @@ export default function MembershipScreen({
 
                 {/* 3. Chọn vị trí đỗ cố định */}
                 <div className="space-y-2">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">3. Chọn Vị trí cố định (Slot đỗ)</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">3. Chọn vị trí đỗ cố định</span>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                     {availableSlots.length > 0 ? (
                       <div className="flex flex-col gap-2">
@@ -401,7 +401,7 @@ export default function MembershipScreen({
                         >
                           {availableSlots.map(s => (
                             <option key={s.id} value={s.id}>
-                              Slot {s.id} ({s.floor} · Khu vực {s.zone})
+                              Vị trí {s.id} ({s.floor} · Khu vực {s.zone})
                             </option>
                           ))}
                         </select>
@@ -412,7 +412,7 @@ export default function MembershipScreen({
                     ) : (
                       <div className="flex items-center gap-2 text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-100">
                         <AlertCircle size={16} />
-                        <span className="text-xs font-bold">Không còn slot trống nào tương thích với loại xe đã chọn.</span>
+                        <span className="text-xs font-bold">Không còn vị trí trống nào phù hợp với loại xe đã chọn.</span>
                       </div>
                     )}
                   </div>

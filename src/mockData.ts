@@ -59,7 +59,7 @@ export const INITIAL_LOGS: SystemLog[] = [
   { id: 'L3', type: 'error', title: 'Cảnh báo camera', description: 'Mất kết nối với Camera cổng số 3 (LPR-03)', timeStr: '08:15 - Hôm nay' },
   { id: 'L4', type: 'success', title: 'Thanh toán VNPAY', description: 'Giao dịch #VNP88273 hoàn tất thành công (50.000 VNĐ)', timeStr: '07:55 - Hôm nay' },
   { id: 'L5', type: 'warning', title: 'Công suất tầng 1 cao', description: 'Tầng 1 đã sử dụng 75% sức chứa trong khung giờ cao điểm', timeStr: '07:20 - Hôm nay' },
-  { id: 'L6', type: 'info', title: 'Đồng bộ cảm biến', description: '24/24 cảm biến slot đã đồng bộ thành công', timeStr: '06:50 - Hôm nay' },
+  { id: 'L6', type: 'info', title: 'Đồng bộ cảm biến', description: '24/24 cảm biến vị trí đã đồng bộ thành công', timeStr: '06:50 - Hôm nay' },
 ];
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [

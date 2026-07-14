@@ -49,14 +49,14 @@ const ROLE_TABS: Record<Role, AdminTab[]> = {
   admin: ['dashboard', 'gate', 'map', 'transactions', 'users', 'reports', 'settings'],
 };
 
-const NAV_ITEMS: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashboard; helper: string }> = [
-  { id: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard, helper: 'Tổng quan vận hành' },
-  { id: 'gate', label: 'Cổng check-in/out', icon: DoorOpen, helper: 'Xử lý xe ra vào' },
-  { id: 'map', label: 'Sơ đồ bãi xe', icon: Map, helper: 'Theo dõi và cập nhật slot' },
-  { id: 'transactions', label: 'Giao dịch bãi xe', icon: Receipt, helper: 'Tra cứu thanh toán' },
-  { id: 'users', label: 'Quản lý người dùng', icon: Users, helper: 'Tài xế và nhân sự' },
-  { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart3, helper: 'Doanh thu và công suất' },
-  { id: 'settings', label: 'Cấu hình hệ thống', icon: Settings, helper: 'Giá, camera, cảnh báo' },
+const NAV_ITEMS: Array<{ id: AdminTab; label: string; mobileLabel: string; icon: typeof LayoutDashboard; helper: string }> = [
+  { id: 'dashboard', label: 'Bảng điều khiển', mobileLabel: 'Tổng quan', icon: LayoutDashboard, helper: 'Tổng quan vận hành' },
+  { id: 'gate', label: 'Cổng check-in/out', mobileLabel: 'Cổng xe', icon: DoorOpen, helper: 'Xử lý xe ra vào' },
+  { id: 'map', label: 'Sơ đồ bãi xe', mobileLabel: 'Bãi xe', icon: Map, helper: 'Theo dõi và cập nhật vị trí' },
+  { id: 'transactions', label: 'Giao dịch', mobileLabel: 'Giao dịch', icon: Receipt, helper: 'Tra cứu thanh toán' },
+  { id: 'users', label: 'Người dùng', mobileLabel: 'Người dùng', icon: Users, helper: 'Tài xế và nhân sự' },
+  { id: 'reports', label: 'Báo cáo doanh thu', mobileLabel: 'Báo cáo', icon: BarChart3, helper: 'Doanh thu và công suất' },
+  { id: 'settings', label: 'Cấu hình hệ thống', mobileLabel: 'Cấu hình', icon: Settings, helper: 'Giá, camera, cảnh báo' },
 ];
 
 const SLOT_STATUS = {
@@ -179,7 +179,7 @@ export default function AdminDashboard({
               }
             : undefined;
 
-        addLog('info', 'Cập nhật slot', `Slot ${slotId} chuyển sang ${SLOT_STATUS[status].label}`);
+        addLog('info', 'Cập nhật vị trí', `Vị trí ${slotId} chuyển sang ${SLOT_STATUS[status].label}`);
         return { ...slot, status, currentSession };
       })
     );
@@ -199,7 +199,7 @@ export default function AdminDashboard({
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
               <Camera className="text-sky-300" size={22} />
-              {!sidebarCollapsed && <h1 className="truncate text-base font-black uppercase tracking-tight">PBMS Hệ Thống</h1>}
+              {!sidebarCollapsed && <h1 className="truncate text-base font-black tracking-tight">PBMS Parking</h1>}
             </div>
             <button
               onClick={() => setSidebarCollapsed((value) => !value)}
@@ -213,10 +213,10 @@ export default function AdminDashboard({
 
           {!sidebarCollapsed && <div className="mt-5 rounded-xl border border-white/10 bg-white/10 p-3">
             <div className="flex items-center gap-3">
-              <img className="h-11 w-11 rounded-xl object-cover" src={ADMIN_AVATAR} alt="Admin profile" />
+              <img className="h-11 w-11 rounded-xl object-cover" src={ADMIN_AVATAR} alt="Ảnh đại diện quản trị viên" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-black">{ROLE_LABEL[currentRole]}</p>
-                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/60">{currentRole} portal</p>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/60">Cổng {ROLE_LABEL[currentRole].toLowerCase()}</p>
               </div>
             </div>
           </div>}
@@ -257,7 +257,10 @@ export default function AdminDashboard({
       </aside>
 
       <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between bg-primary px-4 text-white shadow-md md:hidden">
-        <div className="text-sm font-black uppercase">PBMS Hệ Thống</div>
+        <div>
+          <div className="text-sm font-black">PBMS Parking</div>
+          <div className="text-[9px] font-semibold text-white/60">Quản lý bãi đỗ xe</div>
+        </div>
         <button onClick={onLogout} className="rounded-lg p-2 hover:bg-white/10" type="button">
           <LogOut size={18} />
         </button>
@@ -269,7 +272,7 @@ export default function AdminDashboard({
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.1fr_320px]">
               <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-black text-primary">Camera Capture</h3>
+                  <h3 className="text-sm font-black text-primary">Camera nhận diện</h3>
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">LPR Online</span>
                 </div>
                 <div className="flex aspect-video items-center justify-center rounded-xl border border-slate-200 bg-slate-900 text-white">
@@ -299,7 +302,7 @@ export default function AdminDashboard({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <GateInfo label="Biển số" value={manualPlate || 'Chưa nhận diện'} strong />
                   <GateInfo label="Loại xe" value="Ô tô" />
-                  <GateInfo label="Slot gợi ý" value={gateMode === 'checkin' ? 'A-102' : 'A-101'} />
+                  <GateInfo label="Vị trí đề xuất" value={gateMode === 'checkin' ? 'A-102' : 'A-101'} />
                   <GateInfo label="Thanh toán" value={gateMode === 'checkin' ? 'Đã đặt trước' : 'Đã thanh toán'} status="success" />
                   <GateInfo label="Phí dự kiến" value={gateMode === 'checkin' ? '60.000 VNĐ' : '80.000 VNĐ'} />
                   <GateInfo label="Trạng thái cổng" value="Sẵn sàng mở" status="warning" />
@@ -311,7 +314,7 @@ export default function AdminDashboard({
               </section>
 
               <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-black text-primary">Gate Control</h3>
+                <h3 className="text-sm font-black text-primary">Điều khiển cổng</h3>
                 <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
                   <DoorOpen className="mx-auto text-emerald-700" size={40} />
                   <p className="mt-2 text-sm font-black text-emerald-800">Barrier sẵn sàng</p>
@@ -337,7 +340,7 @@ export default function AdminDashboard({
             </div>
 
             {gateToast && (
-              <div className="fixed bottom-24 right-5 z-50 rounded-xl border border-emerald-200 bg-white p-4 text-sm font-black text-emerald-700 shadow-2xl">
+              <div className="toast-panel fixed bottom-24 right-5 z-50 rounded-xl border border-emerald-200 bg-white p-4 text-sm font-black text-emerald-700 shadow-2xl">
                 {gateToast}
               </div>
             )}
@@ -347,8 +350,8 @@ export default function AdminDashboard({
         {activeTab === 'dashboard' && (
           <Page title="Bảng điều khiển" subtitle={`Tổng quan vận hành dành cho ${ROLE_LABEL[currentRole].toLowerCase()}.`}>
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <KpiCard icon={<Database size={18} />} label="Tổng slot" value={slots.length.toString()} hint={`${occupancyRate}% đang sử dụng`} />
-              <KpiCard icon={<Car size={18} />} label="Slot trống" value={slots.filter((slot) => slot.status === 'available').length.toString()} hint="Có thể đặt ngay" tone="emerald" />
+              <KpiCard icon={<Database size={18} />} label="Tổng vị trí" value={slots.length.toString()} hint={`${occupancyRate}% đang sử dụng`} />
+              <KpiCard icon={<Car size={18} />} label="Vị trí trống" value={slots.filter((slot) => slot.status === 'available').length.toString()} hint="Có thể đặt ngay" tone="emerald" />
               <KpiCard icon={<Wallet size={18} />} label="Doanh thu" value={`${totalRevenue.toLocaleString('vi-VN')} VNĐ`} hint={`${todayTransactions} GD hôm nay`} tone="amber" />
               <KpiCard icon={<Shield size={18} />} label="Vai trò" value={ROLE_LABEL[currentRole]} hint={visibleNavItems.map((item) => item.label).join(', ')} tone="rose" />
             </section>
@@ -487,13 +490,13 @@ export default function AdminDashboard({
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-slate-200 bg-white px-2 py-2 md:hidden">
-        {visibleNavItems.slice(0, 4).map((item) => {
+      <nav aria-label="Điều hướng quản trị" className="fixed bottom-0 left-0 right-0 z-40 flex snap-x gap-1 overflow-x-auto border-t border-slate-200 bg-white px-2 py-2 md:hidden">
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           return (
-            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex flex-col items-center gap-1 rounded-xl py-1.5 text-[9px] font-black ${activeTab === item.id ? 'text-primary' : 'text-slate-400'}`} type="button">
+            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex min-w-[72px] flex-1 snap-center flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[9px] font-black transition ${activeTab === item.id ? 'bg-slate-100 text-primary' : 'text-slate-400'}`} type="button">
               <Icon size={17} />
-              {item.label.split(' ')[0]}
+              <span className="whitespace-nowrap">{item.mobileLabel}</span>
             </button>
           );
         })}
@@ -501,9 +504,9 @@ export default function AdminDashboard({
 
       {editingSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-black text-primary">Cập nhật slot {editingSlot.id}</h3>
-            <p className="mt-1 text-xs font-medium text-slate-500">{editingSlot.floor} · Zone {editingSlot.zone}</p>
+          <div className="modal-panel w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-black text-primary">Cập nhật vị trí {editingSlot.id}</h3>
+            <p className="mt-1 text-xs font-medium text-slate-500">{editingSlot.floor} · Khu vực {editingSlot.zone}</p>
             <div className="mt-4 space-y-3">
               <input value={newSlotPlate} onChange={(event) => setNewSlotPlate(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold uppercase outline-none focus:border-secondary" placeholder="Biển số xe" />
               <input value={newSlotHours} min={1} max={24} onChange={(event) => setNewSlotHours(Number(event.target.value))} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary" type="number" />
@@ -520,7 +523,7 @@ export default function AdminDashboard({
 
       {showAddUserModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-          <form onSubmit={handleAddNewUser} className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
+          <form onSubmit={handleAddNewUser} className="modal-panel w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
             <h3 className="text-base font-black text-primary">Thêm người dùng</h3>
             <div className="mt-4 space-y-3">
               <input required value={newUserName} onChange={(event) => setNewUserName(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold outline-none focus:border-secondary" placeholder="Họ và tên" />
@@ -678,7 +681,7 @@ function TransactionTable({ transactions }: { transactions: Transaction[] }) {
         <tr>
           <th className="p-3">Mã GD</th>
           <th className="p-3">Biển số</th>
-          <th className="p-3">Slot</th>
+          <th className="p-3">Vị trí</th>
           <th className="p-3">Số tiền</th>
           <th className="p-3">Phương thức</th>
           <th className="p-3">Thời gian</th>
@@ -718,7 +721,7 @@ function ChartCard({ title, total, data, max, tone = 'primary' }: { title: strin
         {data.map((item) => (
           <div key={item.label} className="flex flex-1 flex-col items-center gap-2">
             <span className="text-[10px] font-black text-slate-500">{item.display}</span>
-            <div className={`w-full max-w-10 rounded-t-lg ${color}`} style={{ height: `${Math.max(12, (item.value / max) * 205)}px` }} />
+            <div className={`chart-bar w-full max-w-10 rounded-t-lg ${color}`} style={{ height: `${Math.max(12, (item.value / max) * 205)}px`, animationDelay: `${data.indexOf(item) * 55}ms` }} />
             <span className="text-[10px] font-bold text-slate-400">{item.label}</span>
           </div>
         ))}

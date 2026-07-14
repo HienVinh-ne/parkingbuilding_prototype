@@ -14,6 +14,7 @@ import {
   User as UserIcon,
   UserCheck,
 } from 'lucide-react';
+import parkingHero from '../assets/pbms-parking-hero.png';
 
 interface LoginScreenProps {
   onLoginSuccess: (role: Role, view: View, user: User) => void;
@@ -74,19 +75,21 @@ export default function LoginScreen({
     <div className="min-h-screen bg-background text-on-background">
       <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-8">
         <div className="grid w-full gap-6 lg:grid-cols-[1fr_420px] lg:items-center">
-          <section className="hidden lg:block">
-            <div className="max-w-lg">
-              <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+          <section className="relative hidden min-h-[640px] overflow-hidden rounded-3xl border border-white/60 shadow-[0_24px_80px_rgba(15,23,42,0.14)] lg:flex lg:items-end">
+            <img className="login-hero-image absolute inset-0 h-full w-full object-cover object-left" src={parkingHero} alt="Bãi đỗ xe thông minh PBMS Parking" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#101b31]/95 via-[#17233b]/35 to-white/5" />
+            <div className="relative z-10 max-w-lg p-8 text-white xl:p-10">
+              <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-lg backdrop-blur-xl">
                 <Car size={30} />
               </div>
-              <h1 className="text-4xl font-black leading-tight text-primary">PBMS Smart Parking</h1>
-              <p className="mt-4 text-base font-medium leading-7 text-slate-600">
+              <h1 className="text-4xl font-black leading-tight text-white">PBMS Parking</h1>
+              <p className="mt-4 text-base font-medium leading-7 text-white/75">
                 Quản lý đặt chỗ, thanh toán VNPAY, vé QR và vận hành bãi xe trong một giao diện gọn gàng.
               </p>
               <div className="mt-6 grid grid-cols-3 gap-3">
-                <HeroMetric value="24/7" label="Giám sát" />
-                <HeroMetric value="QR" label="Vé điện tử" />
-                <HeroMetric value="VNPAY" label="Thanh toán" />
+                <HeroMetric value="24/7" label="Giám sát" dark />
+                <HeroMetric value="QR" label="Vé điện tử" dark />
+                <HeroMetric value="VNPAY" label="Thanh toán" dark />
               </div>
             </div>
           </section>
@@ -202,7 +205,7 @@ export default function LoginScreen({
 
             <p className="mt-4 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
               <Sparkles size={13} className="text-secondary" />
-              PBMS prototype v2.4
+              PBMS Parking · Phiên bản demo
             </p>
           </section>
         </div>
@@ -211,11 +214,11 @@ export default function LoginScreen({
   );
 }
 
-function HeroMetric({ value, label }: { value: string; label: string }) {
+function HeroMetric({ value, label, dark = false }: { value: string; label: string; dark?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-lg font-black text-primary">{value}</p>
-      <p className="mt-1 text-xs font-bold uppercase text-slate-500">{label}</p>
+    <div className={`rounded-xl border p-4 shadow-sm backdrop-blur-xl ${dark ? 'border-white/15 bg-white/10' : 'border-slate-200 bg-white'}`}>
+      <p className={`text-lg font-black ${dark ? 'text-white' : 'text-primary'}`}>{value}</p>
+      <p className={`mt-1 text-xs font-bold uppercase ${dark ? 'text-white/65' : 'text-slate-500'}`}>{label}</p>
     </div>
   );
 }

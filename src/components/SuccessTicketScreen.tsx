@@ -39,7 +39,7 @@ export default function SuccessTicketScreen({
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-xs">
-              <TicketInfo label="Vị trí đỗ" value={`Slot ${reservation.slotId}`} subValue={reservation.floor} />
+              <TicketInfo label="Vị trí đỗ" value={`Vị trí ${reservation.slotId}`} subValue={reservation.floor} />
               <TicketInfo label="Biển số" value={reservation.licensePlate} mono />
               <TicketInfo label="Loại xe" value={reservation.vehicleType === 'oto' ? 'Ô tô' : 'Xe máy'} />
               <TicketInfo label="Tổng phí" value={`${reservation.totalFee.toLocaleString('vi-VN')} VNĐ`} />

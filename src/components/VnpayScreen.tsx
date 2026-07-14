@@ -64,7 +64,7 @@ export default function VnpayScreen({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white">
             <Landmark size={22} />
           </div>
-          <h2 className="mt-3 text-sm font-black text-slate-800">PBMS Smart Parking</h2>
+          <h2 className="mt-3 text-sm font-black text-slate-800">PBMS Parking</h2>
           <p className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase text-slate-500">
             <Shield size={13} className="text-emerald-600" />
             Đơn vị chấp nhận thanh toán

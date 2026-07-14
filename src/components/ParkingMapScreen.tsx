@@ -90,7 +90,7 @@ export default function ParkingMapScreen({
               <Car size={21} />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-extrabold">PBMS Smart Parking</h1>
+              <h1 className="truncate text-sm font-extrabold">PBMS Parking</h1>
               <p className="truncate text-[11px] font-medium text-white/75">Đặt chỗ gửi xe nhanh và rõ ràng</p>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function ParkingMapScreen({
             <button
               onClick={onNavigateToMembership}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-white/85 transition hover:bg-white/10 hover:text-white"
-              title="Membership của tôi"
+              title="Thẻ tháng của tôi"
               type="button"
             >
               <CreditCard size={19} />
@@ -201,7 +201,7 @@ export default function ParkingMapScreen({
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-slate-800">Bộ lọc nhanh</h3>
-              <span className="text-[11px] font-bold text-slate-400">{filteredSlots.length} slot</span>
+              <span className="text-[11px] font-bold text-slate-400">{filteredSlots.length} vị trí</span>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {slotFilters.map((filter) => (
@@ -268,7 +268,7 @@ export default function ParkingMapScreen({
         </button>
         <button onClick={onNavigateToMembership} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <CreditCard size={18} />
-          <span className="mt-0.5 text-[10px] font-bold">Membership</span>
+          <span className="mt-0.5 text-[10px] font-bold">Thẻ tháng</span>
         </button>
         <button onClick={onLogout} className="flex flex-col items-center px-4 py-1 text-slate-400" type="button">
           <UserIcon size={18} />
@@ -308,7 +308,7 @@ function SlotGrid({
           <button
             key={slot.id}
             onClick={() => setActiveSlot(slot)}
-            className={`flex aspect-[1.05] min-h-16 flex-col items-center justify-center gap-1 rounded-lg border-2 p-1 text-center transition ${meta.card} ${
+            className={`parking-space flex aspect-[1.05] min-h-16 flex-col items-center justify-center gap-1 rounded-lg border-2 p-1 text-center transition ${meta.card} ${
               selected ? 'ring-2 ring-primary ring-offset-2' : ''
             }`}
             type="button"
@@ -352,8 +352,8 @@ function SlotDetails({
           <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${meta.card}`}>
             {meta.label}
           </span>
-          <h3 className="mt-3 text-2xl font-black text-primary">Slot {activeSlot.id}</h3>
-          <p className="mt-1 text-xs font-semibold text-slate-500">{activeSlot.floor} · Zone {activeSlot.zone}</p>
+          <h3 className="mt-3 text-2xl font-black text-primary">Vị trí {activeSlot.id}</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{activeSlot.floor} · Khu vực {activeSlot.zone}</p>
         </div>
         <div className="rounded-xl bg-blue-50 p-3 text-primary">
           {activeSlot.vehicleType === 'oto' ? <Car size={24} /> : <Bike size={24} />}

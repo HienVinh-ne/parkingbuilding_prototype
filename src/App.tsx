@@ -143,8 +143,8 @@ export default function App() {
         const newLog: SystemLog = {
           id: logId,
           type: 'success',
-          title: 'Đăng ký Membership qua VNPAY',
-          description: `Thẻ ${pendingMembershipCard.ticketCode} thành công cho xe ${pendingMembershipCard.vehicles.join(', ')} tại slot cố định ${pendingMembershipCard.slots[0].slotId}`,
+          title: 'Đăng ký thẻ tháng qua VNPAY',
+          description: `Thẻ ${pendingMembershipCard.ticketCode} đã được kích hoạt cho xe ${pendingMembershipCard.vehicles.join(', ')} tại vị trí cố định ${pendingMembershipCard.slots[0].slotId}`,
           timeStr: 'Vừa xong',
         };
         return [newLog, ...prev];
@@ -237,7 +237,7 @@ export default function App() {
         durationHours: newCard.durationMonths * 720,
         totalFee: newCard.price,
         status: 'UPCOMING',
-        dateStr: 'Đăng ký Membership'
+        dateStr: 'Đăng ký thẻ tháng'
       };
       setActiveReservation(tempReservation);
       setCurrentView('PAYMENT_VNPAY');
@@ -291,8 +291,8 @@ export default function App() {
       const newLog: SystemLog = {
         id: `L_${Date.now()}`,
         type: 'success',
-        title: 'Đăng ký Membership thành công',
-        description: `Đăng ký thẻ ${newCard.ticketCode} cho xe ${newCard.vehicles.join(', ')} tại slot cố định ${newCard.slots[0].slotId}`,
+        title: 'Đăng ký thẻ tháng thành công',
+        description: `Đăng ký thẻ ${newCard.ticketCode} cho xe ${newCard.vehicles.join(', ')} tại vị trí cố định ${newCard.slots[0].slotId}`,
         timeStr: 'Vừa xong',
       };
       setLogsList((prev) => [newLog, ...prev]);
